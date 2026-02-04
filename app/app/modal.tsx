@@ -8,9 +8,11 @@ export default function ModalScreen() {
   return (
     <ThemedView style={styles.container}>
       <ThemedText type="title">This is a modal</ThemedText>
-      <Link href="/(tabs)/index" dismissTo style={styles.link}> {/* A principio, não tem ultilidade */}
+      {/* A principio, não tem ultilidade. Era pra fechar o modal e ir para a home */}
+      {/*
+      <Link href="/(tabs)/index" dismissTo style={styles.link}> 
         <ThemedText type="link">Go to home screen</ThemedText>
-      </Link>
+      </Link>]*/}
     </ThemedView>
   );
 }

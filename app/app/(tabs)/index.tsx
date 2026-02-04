@@ -7,32 +7,36 @@ import {
   ScrollView,
   Pressable,
   FlatList,
+  Image,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { ProductModal } from "@/components/ProductModal";
-
-type Category = { id: string; name: string };
 import type { Product } from "@/types/Product";
+
+const BRAND = "#942229";
 
 export default function HomeScreen() {
   const [query, setQuery] = useState("");
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
-  const categories: Category[] = useMemo(
+  const categories = useMemo(
     () => [
+      { id: "churrasco", name: "Churrasco" },
+      { id: "suinos_e_frangos", name: "Suínos e Frangos" },
+      { id: "kits", name: "Kits" },
       { id: "bebidas", name: "Bebidas" },
-      { id: "mercearia", name: "Mercearia" },
-      { id: "frios", name: "Frios" },
-      { id: "doces", name: "Doces" },
     ],
     []
   );
 
-  const featured: Product[] = useMemo(
+  const featured = useMemo(
     () => [
-      { id: "p1", name: "Cerveja Heineken 600ml", price: 12 },
-      { id: "p2", name: "Queijo Gouda (200g)", price: 25 },
-      { id: "p3", name: "Picanha Selecionada 1,1 Kg", price: 189.99 },
+      { id: "000", name: "Álcool Gel 80° Acendedor Zulu 500 g", price: 19.39 },
+      { id: "001", name: "Amstel Lata 350 ml", price: 4.39 },
+      { id: "002", name: "Bacon Fatiado Seara 250 g", price: 23.89 },
+      { id: "003", name: "Bife Ancho Angus aprox. 600 g", price: 79.99 },
+      { id: "004", name: "Bife Chorizo Angus aprox. 600 g", price: 131.9 },
     ],
     []
   );
@@ -42,96 +46,118 @@ export default function HomeScreen() {
   );
 
   return (
-    <ScrollView style={styles.page} contentContainerStyle={styles.content}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Empório Arouca</Text>
-      </View>
-
-      <View style={styles.searchWrap}>
-        <TextInput
-          placeholder="Buscar produtos..."
-          placeholderTextColor="#8a8a8a"
-          value={query}
-          onChangeText={setQuery}
-          style={styles.search}
-        />
-      </View>
-
-      <View style={styles.banner}>
-        <Text style={styles.bannerTitle}>Ofertas do dia</Text>
-        <Text style={styles.bannerSubtitle}>
-          Produtos selecionados com preço especial.
-        </Text>
-
-        <Pressable style={styles.bannerBtn}>
-          <Text style={styles.bannerBtnText}>Ver promoções</Text>
-        </Pressable>
-      </View>
-
-      <Text style={styles.sectionTitle}>Categorias</Text>
-      <View style={styles.categoriesRow}>
-        {categories.map((c) => (
-          <Pressable key={c.id} style={styles.categoryChip}>
-            <Text style={styles.categoryChipText}>{c.name}</Text>
+    <View style={styles.container}>
+      {/* HEADER FULL WIDTH */}
+      <SafeAreaView style={styles.headerSafe} edges={["top"]}>
+        <View style={styles.header}>
+          <Image
+            source={require("@/assets/images/logo-emporio-arouca.png")}
+            style={styles.headerLogo}
+            resizeMode="contain"
+          />
+        </View>
+      </SafeAreaView>
+      {/* CONTEÚDO COM PADDING */}
+      <ScrollView contentContainerStyle={styles.content}>
+        <View style={styles.searchWrap}>
+          <TextInput
+            placeholder="Buscar produtos..."
+            placeholderTextColor="#8a8a8a"
+            value={query}
+            onChangeText={setQuery}
+            style={styles.search}
+          />
+        </View>
+        {/* Desativei por enquanto, talvez mais pra frente eu reative
+        <View style={styles.banner}>
+          <Text style={styles.bannerTitle}>Ofertas do dia</Text>
+          <Text style={styles.bannerSubtitle}>
+            Produtos selecionados com preço especial.
+          </Text>
+          
+          <Pressable style={styles.bannerBtn}>
+            <Text style={styles.bannerBtnText}>Ver promoções</Text>
           </Pressable>
-        ))}
-      </View>
-
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Destaques</Text>
-        <Pressable>
-          <Text style={styles.link}>Ver todos</Text>
-        </Pressable>
-      </View>
-
-      <FlatList
-        data={filtered}
-        keyExtractor={(item) => item.id}
-        scrollEnabled={false}
-        ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
-        renderItem={({ item }) => (
-          <View style={styles.card}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.cardTitle}>{item.name}</Text>
-              <Text style={styles.cardPrice}>R$ {item.price.toFixed(2)}</Text>
-            </View>
-
-            <Pressable
-              style={styles.addBtn}
-              onPress={() => {
-                setSelectedProduct(item);
-                setModalVisible(true);
-              }}
-            >
-              <Text style={styles.addBtnText}>Adicionar</Text>
+        </View>
+          */}
+        <Text style={styles.sectionTitle}>Categorias</Text>
+        <FlatList
+          data={categories}
+          keyExtractor={(item) => item.id}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.categoriesRow}
+          ItemSeparatorComponent={() => <View style={{ width: 10 }} />}
+          renderItem={({ item }) => (
+            <Pressable style={styles.categoryChip}>
+              <Text style={styles.categoryChipText}>{item.name}</Text>
             </Pressable>
-          </View>
-        )}
-      />
-      <ProductModal
-        visible={modalVisible}
-        product={selectedProduct}
-        onClose={() => setModalVisible(false)}
-      />
-    </ScrollView>
+          )}
+        />
+
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Destaques</Text>
+          <Pressable>
+            <Text style={styles.link}>Ver todos</Text>
+          </Pressable>
+        </View>
+
+        <FlatList
+          data={filtered}
+          keyExtractor={(item) => item.id}
+          scrollEnabled={false}
+          ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
+          renderItem={({ item }) => (
+            <View style={styles.card}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.cardTitle}>{item.name}</Text>
+                <Text style={styles.cardPrice}>R$ {item.price.toFixed(2)}</Text>
+              </View>
+
+              <Pressable
+                style={styles.addBtn}
+                onPress={() => {
+                  setSelectedProduct(item);
+                  setModalVisible(true);
+                }}
+              >
+                <Text style={styles.addBtnText}>Adicionar</Text>
+              </Pressable>
+            </View>
+          )}
+        />
+        <ProductModal
+          visible={modalVisible}
+          product={selectedProduct}
+          onClose={() => setModalVisible(false)}
+        />
+      </ScrollView>
+    </View>
   );
 }
 
-const BRAND = "#7B2D2D"; // tom vinho/marrom aproximado do logo
-
 const styles = StyleSheet.create({
-  page: { flex: 1, backgroundColor: "#F7F5F2" },
-  content: { padding: 16, paddingBottom: 28 },
-
-  header: {
-    alignItems: "center",
-    paddingVertical: 16,
+  container: {
+    flex: 1,
+    backgroundColor: "#F7F5F2",
   },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: "800",
-    color: BRAND,
-    marginTop: 28,
+  headerSafe: {
+    backgroundColor: BRAND,
+  },
+  header: {
+    width: "100%",
+    height: 90,
+    backgroundColor: BRAND,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  headerLogo: {
+    width: "200%",
+    height: 60,
+  },
+  content: {
+    padding: 16,
+    paddingBottom: 28,
   },
 
   searchWrap: { marginTop: 8 },
@@ -167,19 +193,20 @@ const styles = StyleSheet.create({
   bannerBtnText: { color: "#fff", fontWeight: "700" },
 
   sectionHeader: {
-    marginTop: 18,
+    marginTop: 12,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    minHeight: 48,
+    marginVertical: 8,
   },
-  sectionTitle: { marginTop: 18, fontSize: 18, fontWeight: "800", color: "#111" },
+  sectionTitle: { marginTop: 18, fontSize: 20, fontWeight: "800", color: "#111" }, // fonte maior
   link: { color: BRAND, fontWeight: "700" },
 
   categoriesRow: {
     flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 10,
     marginTop: 10,
+    paddingRight: 8,
   },
   categoryChip: {
     backgroundColor: "#FFFFFF",
