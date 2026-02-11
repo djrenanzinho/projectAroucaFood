@@ -20,9 +20,14 @@ export function ProductModal({ visible, product, onClose, onAdd }: ProductModalP
 
   if (!product) return null;
 
+  const maxQty = typeof product.stock === "number" ? Math.max(0, product.stock) : undefined;
+  const isAvailable = maxQty === undefined ? true : maxQty > 0;
+  const canIncrement = maxQty === undefined ? true : qty < maxQty;
+
   const handleAdd = () => {
     if (!product) return;
-    onAdd(product, Math.max(1, qty));
+    if (!isAvailable) return;
+    onAdd(product, Math.max(1, Math.min(qty, maxQty ?? qty)));
   };
 
   return (
@@ -49,13 +54,23 @@ export function ProductModal({ visible, product, onClose, onAdd }: ProductModalP
               <Text style={styles.qtyBtnText}>-</Text>
             </Pressable>
             <Text style={styles.qtyText}>{qty}</Text>
-            <Pressable style={styles.qtyBtn} onPress={() => setQty((n) => n + 1)}>
+            <Pressable
+              style={[styles.qtyBtn, !canIncrement && { opacity: 0.4 }]}
+              disabled={!canIncrement}
+              onPress={() => setQty((n) => (canIncrement ? n + 1 : n))}
+            >
               <Text style={styles.qtyBtnText}>+</Text>
             </Pressable>
           </View>
 
-          <Pressable style={styles.addBtn} onPress={handleAdd}>
-            <Text style={styles.addBtnText}>Adicionar ao carrinho</Text>
+          <Pressable
+            style={[styles.addBtn, !isAvailable && { backgroundColor: '#b0a7a7' }]}
+            disabled={!isAvailable}
+            onPress={handleAdd}
+          >
+            <Text style={styles.addBtnText}>
+              {isAvailable ? 'Adicionar ao carrinho' : 'Indisponível'}
+            </Text>
           </Pressable>
         </View>
       </View>

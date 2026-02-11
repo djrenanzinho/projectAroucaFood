@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { BlurView } from "expo-blur";
 import {
   Alert,
   FlatList,
@@ -16,7 +17,7 @@ import { db } from "@/firebaseConfig";
 import type { Product } from "@/types/Product";
 import { collection, getDocs } from "firebase/firestore";
 import { addOrIncrementItem, getCart } from "@/storage/cart";
-import { styles } from "./index.styles";
+import { styles } from "@/styles/index.styles";
 
 type ProductWithCategory = Product & { category?: string | null };
 
@@ -62,6 +63,7 @@ export default function HomeScreen() {
     async function fetchProducts() {
       setLoading(true);
       setError(null);
+
       try {
         const snapshot = await getDocs(collection(db, "produtos"));
         if (!active) return;
@@ -74,6 +76,7 @@ export default function HomeScreen() {
             price: Number(data?.price) || 0,
             category: data?.category ?? null,
             highlights: Boolean(data?.highlights),
+            stock: Number(data?.stock ?? 0),
             createdAt: data?.createdAt ?? null,
             updatedAt: data?.updatedAt ?? null,
           };
@@ -138,6 +141,16 @@ export default function HomeScreen() {
 
   const handleAddToCart = async (product: Product, quantity = 1) => {
     try {
+    const available = typeof product.stock === "number" ? product.stock : undefined;
+    if (available !== undefined && available <= 0) {
+      Alert.alert("Indisponível", "Produto sem estoque no momento.");
+      return;
+    }
+    if (available !== undefined && quantity > available) {
+      Alert.alert("Indisponível", "Quantidade solicitada excede o estoque disponível.");
+      return;
+    }
+
       const updated = await addOrIncrementItem(product, quantity);
       const total = updated.reduce((sum, item) => sum + item.qty, 0);
       setCartCount(total);
@@ -227,23 +240,25 @@ export default function HomeScreen() {
               ) : null
             }
             renderItem={({ item }) => (
-              <View style={styles.card}>
+              <BlurView intensity={60} tint="light" style={styles.card}>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.cardTitle}>{item.name}</Text>
                   <Text style={styles.cardPrice}>R$ {item.price.toFixed(2)}</Text>
                 </View>
 
                 <Pressable
-                  style={styles.addBtn}
-                  onPress={() => {
-                    setSelectedProduct(item);
-                    setModalVisible(true);
-                  }}
-                >
-                  <Text style={styles.addBtnText}>Ver mais</Text>
-                </Pressable>
-              </View>
-              
+                    style={[styles.addBtn, (item.stock ?? 0) <= 0 && { opacity: 0.5 }]}
+                    disabled={(item.stock ?? 0) <= 0}
+                    onPress={() => {
+                      setSelectedProduct(item);
+                      setModalVisible(true);
+                    }}
+                  >
+                    <Text style={styles.addBtnText}>
+                      {(item.stock ?? 0) <= 0 ? "Indisponível" : "Ver mais"}
+                    </Text>
+                  </Pressable>
+              </BlurView>
             )}
           />
         )}
@@ -265,22 +280,25 @@ export default function HomeScreen() {
               ) : null
             }
             renderItem={({ item }) => (
-              <View style={styles.card}>
+              <BlurView intensity={35} tint="light" style={styles.card}>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.cardTitle}>{item.name}</Text>
                   <Text style={styles.cardPrice}>R$ {item.price.toFixed(2)}</Text>
                 </View>
 
                 <Pressable
-                  style={styles.addBtn}
-                  onPress={() => {
-                    setSelectedProduct(item);
-                    setModalVisible(true);
-                  }}
-                >
-                  <Text style={styles.addBtnText}>Ver mais</Text>
-                </Pressable>
-              </View>
+                    style={[styles.addBtn, (item.stock ?? 0) <= 0 && { opacity: 0.5 }]}
+                    disabled={(item.stock ?? 0) <= 0}
+                    onPress={() => {
+                      setSelectedProduct(item);
+                      setModalVisible(true);
+                    }}
+                  >
+                      <Text style={styles.addBtnText}>
+                        {(item.stock ?? 0) <= 0 ? "Indisponível" : "Ver mais"}
+                      </Text>
+                  </Pressable>
+              </BlurView>
             )}
           />
         )}

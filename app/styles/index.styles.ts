@@ -21,7 +21,7 @@ export const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    backgroundColor: "#F7F5F2",
+    backgroundColor: "#F7F3EF",
   },
   headerSafe: {
     backgroundColor: BRAND,
@@ -39,20 +39,20 @@ export const styles = StyleSheet.create({
   },
   content: {
     padding: 16,
-    paddingBottom: 28,
+    paddingBottom: 32,
   },
   searchWrap: {
     marginTop: 8,
   },
   search: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 14,
-    paddingHorizontal: 14,
+    backgroundColor: "rgba(255,255,255,0.75)",
+    borderRadius: 18,
+    paddingHorizontal: 16,
     paddingVertical: 12,
     borderWidth: 1,
-    borderColor: "#E7E2DA",
+    borderColor: "rgba(233,225,218,0.9)",
     fontSize: 16,
-    color: "#111",
+    color: "#2b2420",
   },
   cartInfoRow: {
     marginTop: 10,
@@ -60,7 +60,7 @@ export const styles = StyleSheet.create({
   },
   cartInfo: {
     fontSize: 14,
-    color: "#222",
+    color: "#4a3f38",
     fontWeight: "700",
   },
   cartMessage: {
@@ -81,7 +81,7 @@ export const styles = StyleSheet.create({
     marginTop: 18,
     fontSize: 20,
     fontWeight: "800",
-    color: "#111",
+    color: "#3b2f28",
   },
   link: {
     color: BRAND,
@@ -93,11 +93,11 @@ export const styles = StyleSheet.create({
     paddingRight: 8,
   },
   categoryChip: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "rgba(255,255,255,0.75)",
     borderWidth: 1,
-    borderColor: "#E7E2DA",
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    borderColor: "rgba(233,225,218,0.9)",
+    paddingHorizontal: 14,
+    paddingVertical: 8,
     borderRadius: 999,
   },
   categoryChipSelected: {
@@ -106,7 +106,7 @@ export const styles = StyleSheet.create({
   },
   categoryChipText: {
     fontWeight: "700",
-    color: "#222",
+    color: "#4a3f38",
   },
   categoryChipTextSelected: {
     color: "#fff",
@@ -129,16 +129,22 @@ export const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 12,
     alignItems: "center",
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "rgba(255,255,255,0.35)",
     borderWidth: 1,
-    borderColor: "#E7E2DA",
-    borderRadius: 18,
+    borderColor: "rgba(255,255,255,0.7)",
+    borderRadius: 20,
     padding: 14,
+    overflow: "hidden",
+    shadowColor: "#5a3b2b",
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 3,
   },
   cardTitle: {
     fontSize: 16,
     fontWeight: "800",
-    color: "#111",
+    color: "#3b2f28",
   },
   cardPrice: {
     marginTop: 6,
@@ -148,13 +154,20 @@ export const styles = StyleSheet.create({
   },
   addBtn: {
     backgroundColor: BRAND,
-    paddingHorizontal: 14,
+    paddingHorizontal: 16,
     paddingVertical: 10,
-    borderRadius: 12,
+    borderRadius: 999,
+    /*
+    backgroundColor: "rgba(255,255,255,0.45)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.75)",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 999,
+    */
   },
   addBtnText: {
     color: "#fff",
     fontWeight: "800",
   },
 });
-

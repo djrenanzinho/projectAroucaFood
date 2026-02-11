@@ -27,6 +27,7 @@ import { ADMIN_EMAILS } from '@/constants/adminEmails';
 import type { Product } from '@/types/Product';
 
 const BRAND = '#942229';
+const CATEGORY_OPTIONS = ['Churrasco', 'Suínos e Frangos', 'Kits', 'Bebidas'];
 
 export default function EstoqueScreen() {
   const router = useRouter();
@@ -38,8 +39,9 @@ export default function EstoqueScreen() {
     id: '',
     name: '',
     price: '',
-    category: '',
+    category: CATEGORY_OPTIONS[0],
     highlights: false,
+    stock: '',
   });
   const [saving, setSaving] = useState(false);
 
@@ -48,12 +50,14 @@ export default function EstoqueScreen() {
     return email ? ADMIN_EMAILS.map((e) => e.toLowerCase()).includes(email) : false;
   }, [user]);
 
+  const parseNumber = (value: string) => Number(value.replace(',', '.').trim());
+
   useEffect(() => {
     if (!isAdmin) {
       Alert.alert('Acesso restrito', 'Você será redirecionado.', [
         {
           text: 'OK',
-          onPress: () => router.replace('/(tabs)'),
+          onPress: () => router.replace('/'),
         },
       ]);
       return;
@@ -65,12 +69,14 @@ export default function EstoqueScreen() {
         const snap = await getDocs(collection(db, 'produtos'));
         const list: Product[] = snap.docs.map((d) => {
           const data = d.data();
+          const cat = CATEGORY_OPTIONS.includes(data?.category) ? data?.category : CATEGORY_OPTIONS[0];
           return {
             id: d.id,
             name: data?.name ?? 'Produto',
             price: Number(data?.price) || 0,
-            category: data?.category ?? '',
+            category: cat,
             highlights: Boolean(data?.highlights),
+            stock: Number(data?.stock ?? 0),
             createdAt: data?.createdAt ?? null,
             updatedAt: data?.updatedAt ?? null,
           };
@@ -87,28 +93,38 @@ export default function EstoqueScreen() {
   }, [isAdmin, router]);
 
   const handleEdit = (p: Product) => {
+    const cat = p.category && CATEGORY_OPTIONS.includes(p.category) ? p.category : CATEGORY_OPTIONS[0];
     setForm({
       id: p.id,
       name: p.name,
       price: String(p.price),
-      category: p.category ?? '',
+      category: cat,
       highlights: Boolean(p.highlights),
+      stock: p.stock != null ? String(p.stock) : '',
     });
   };
 
   const resetForm = () =>
-    setForm({ id: '', name: '', price: '', category: '', highlights: false });
+    setForm({ id: '', name: '', price: '', category: CATEGORY_OPTIONS[0], highlights: false, stock: '' });
 
   const handleSave = async () => {
     if (!form.name.trim() || !form.price.trim()) {
       Alert.alert('Atenção', 'Informe nome e preço.');
       return;
     }
-    const priceNumber = Number(form.price.replace(',', '.'));
+    const priceNumber = parseNumber(form.price);
     if (Number.isNaN(priceNumber)) {
       Alert.alert('Atenção', 'Preço inválido.');
       return;
     }
+
+    const stockNumber = form.stock === '' ? 0 : parseNumber(form.stock);
+    if (Number.isNaN(stockNumber) || stockNumber < 0) {
+      Alert.alert('Atenção', 'Estoque deve ser um número zero ou positivo.');
+      return;
+    }
+
+    const category = CATEGORY_OPTIONS.includes(form.category) ? form.category : CATEGORY_OPTIONS[0];
 
     try {
       setSaving(true);
@@ -116,16 +132,18 @@ export default function EstoqueScreen() {
         await updateDoc(doc(db, 'produtos', form.id), {
           name: form.name.trim(),
           price: priceNumber,
-          category: form.category.trim(),
+          category,
           highlights: form.highlights,
+          stock: stockNumber,
           updatedAt: serverTimestamp(),
         });
       } else {
         await addDoc(collection(db, 'produtos'), {
           name: form.name.trim(),
           price: priceNumber,
-          category: form.category.trim(),
+          category,
           highlights: form.highlights,
+          stock: stockNumber,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
         });
@@ -135,19 +153,22 @@ export default function EstoqueScreen() {
       const snap = await getDocs(collection(db, 'produtos'));
       const list: Product[] = snap.docs.map((d) => {
         const data = d.data();
+          const cat = CATEGORY_OPTIONS.includes(data?.category) ? data?.category : CATEGORY_OPTIONS[0];
         return {
           id: d.id,
           name: data?.name ?? 'Produto',
           price: Number(data?.price) || 0,
-          category: data?.category ?? '',
+            category: cat,
           highlights: Boolean(data?.highlights),
+            stock: Number(data?.stock ?? 0),
           createdAt: data?.createdAt ?? null,
           updatedAt: data?.updatedAt ?? null,
         };
       });
       setProducts(list);
-    } catch (err) {
-      Alert.alert('Erro', 'Não foi possível salvar.');
+    } catch (err: any) {
+      console.error('Erro ao salvar produto', err);
+      Alert.alert('Erro', err?.message ?? 'Não foi possível salvar.');
     } finally {
       setSaving(false);
     }
@@ -158,6 +179,7 @@ export default function EstoqueScreen() {
       <View style={{ flex: 1 }}>
         <Text style={styles.cardTitle}>{item.name}</Text>
         <Text style={styles.cardMeta}>Categoria: {item.category || '-'} • Destaque: {item.highlights ? 'Sim' : 'Não'}</Text>
+        <Text style={styles.cardMeta}>Estoque: {item.stock ?? 0}</Text>
         <Text style={styles.cardPrice}>R$ {item.price.toFixed(2)}</Text>
       </View>
       <Text style={styles.editHint}>Editar</Text>
@@ -201,10 +223,32 @@ export default function EstoqueScreen() {
             </View>
             <View style={styles.field}>
               <Text style={styles.label}>Categoria</Text>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ gap: 8, paddingVertical: 4 }}
+              >
+                {CATEGORY_OPTIONS.map((cat) => {
+                  const selected = form.category === cat;
+                  return (
+                    <Pressable
+                      key={cat}
+                      style={[styles.chip, selected && styles.chipSelected]}
+                      onPress={() => setForm((f) => ({ ...f, category: cat }))}
+                    >
+                      <Text style={[styles.chipText, selected && styles.chipTextSelected]}>{cat}</Text>
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+            </View>
+            <View style={styles.field}>
+              <Text style={styles.label}>Estoque</Text>
               <TextInput
-                value={form.category}
-                onChangeText={(t) => setForm((f) => ({ ...f, category: t }))}
-                placeholder="Ex: Churrasco"
+                value={form.stock}
+                onChangeText={(t) => setForm((f) => ({ ...f, stock: t }))}
+                placeholder="Ex: 10"
+                keyboardType="number-pad"
                 style={styles.input}
               />
             </View>
@@ -286,6 +330,26 @@ const styles = StyleSheet.create({
   buttonText: { fontWeight: '800', color: '#fff' },
   listTitle: { fontWeight: '800', fontSize: 16, color: '#2c1b12' },
   loading: { color: '#6e5a4b' },
+  chip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#f0f0f0',
+    borderWidth: 1,
+    borderColor: '#d9cfc2',
+  },
+  chipSelected: {
+    backgroundColor: BRAND,
+    borderColor: BRAND,
+  },
+  chipText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#3c2b1e',
+  },
+  chipTextSelected: {
+    color: '#fff',
+  },
   card: {
     backgroundColor: '#fff',
     borderRadius: 12,

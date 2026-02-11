@@ -17,7 +17,7 @@ import { onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndP
 import { auth, db } from "@/firebaseConfig";
 import { ADMIN_EMAILS } from "@/constants/adminEmails";
 import { collection, doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
-import { styles } from "./profile.styles";
+import { styles } from "@/styles/profile.styles";
 
 export default function ProfileScreen() {
   const router = useRouter();

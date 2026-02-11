@@ -6,6 +6,7 @@ export type Product = {
   price: number;
   category?: string | null;
   highlights?: boolean;
+  stock?: number | null;
   createdAt?: Timestamp | null;
   updatedAt?: Timestamp | null;
 };

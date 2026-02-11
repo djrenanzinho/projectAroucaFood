@@ -11,7 +11,7 @@ import {
 import { useFocusEffect } from "@react-navigation/native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { getCart, setQuantity, removeItem, clearCart, type CartItem } from "@/storage/cart";
-import { styles } from "./cart.styles";
+import { styles } from "@/styles/cart.styles";
 
 const BRAND = "#942229";
 const bgImage = require("../../assets/images/cart-background.jpeg");
