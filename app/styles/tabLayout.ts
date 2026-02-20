@@ -25,7 +25,6 @@ export const getTabScreenOptions = (colorScheme: 'light' | 'dark'): BottomTabNav
     bottom: 14,
     /*
     backgroundColor: 'transparent',
-    borderColor: colorScheme === 'dark' ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.75)',
     */
     backgroundColor: colorScheme === 'light' ? 'rgba(20,20,20,0.8)' : 'rgba(20, 20, 20, 0.34)',
     borderWidth: 1,

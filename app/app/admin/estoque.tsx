@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   Alert,
-  FlatList,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -13,37 +12,32 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import {
-  addDoc,
-  collection,
-  doc,
-  getDocs,
-  serverTimestamp,
-  updateDoc,
-} from 'firebase/firestore';
-import { useRouter } from 'expo-router';
+import { addDoc, collection, doc, getDoc, getDocs, serverTimestamp, updateDoc } from 'firebase/firestore';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { auth, db } from '@/firebaseConfig';
 import { ADMIN_EMAILS } from '@/constants/adminEmails';
-import type { Product } from '@/types/Product';
 
 const BRAND = '#942229';
-const CATEGORY_OPTIONS = ['Churrasco', 'Suínos e Frangos', 'Kits', 'Bebidas'];
+const DEFAULT_CATEGORIES = ['Churrasco', 'Suínos e Frangos', 'Kits', 'Bebidas'];
 
 export default function EstoqueScreen() {
   const router = useRouter();
   const user = auth.currentUser;
 
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [categories, setCategories] = useState<string[]>(DEFAULT_CATEGORIES);
+
   const [form, setForm] = useState({
     id: '',
     name: '',
     price: '',
-    category: CATEGORY_OPTIONS[0],
+    category: DEFAULT_CATEGORIES[0],
     highlights: false,
     stock: '',
   });
   const [saving, setSaving] = useState(false);
+  const [prefillLoading, setPrefillLoading] = useState(false);
+  const [newCategory, setNewCategory] = useState('');
+  const { editId } = useLocalSearchParams<{ editId?: string }>();
 
   const isAdmin = useMemo(() => {
     const email = user?.email?.toLowerCase();
@@ -62,50 +56,107 @@ export default function EstoqueScreen() {
       ]);
       return;
     }
+  }, [isAdmin, router]);
 
-    const load = async () => {
-      setLoading(true);
+  useEffect(() => {
+    if (!isAdmin) return;
+
+    const loadCategories = async () => {
       try {
         const snap = await getDocs(collection(db, 'produtos'));
-        const list: Product[] = snap.docs.map((d) => {
+        const unique = new Set<string>(DEFAULT_CATEGORIES);
+        snap.docs.forEach((d) => {
           const data = d.data();
-          const cat = CATEGORY_OPTIONS.includes(data?.category) ? data?.category : CATEGORY_OPTIONS[0];
-          return {
-            id: d.id,
-            name: data?.name ?? 'Produto',
-            price: Number(data?.price) || 0,
-            category: cat,
-            highlights: Boolean(data?.highlights),
-            stock: Number(data?.stock ?? 0),
-            createdAt: data?.createdAt ?? null,
-            updatedAt: data?.updatedAt ?? null,
-          };
+          const cat = typeof data?.category === 'string' ? data.category.trim() : '';
+          if (cat) unique.add(cat);
         });
-        setProducts(list);
+        const list = Array.from(unique);
+        setCategories(list);
+        setForm((f) => ({ ...f, category: f.category || list[0] || '' }));
       } catch (err) {
-        Alert.alert('Erro', 'Falha ao carregar produtos.');
-      } finally {
-        setLoading(false);
+        console.warn('Falha ao carregar categorias', err);
       }
     };
 
-    load();
-  }, [isAdmin, router]);
+    loadCategories();
+  }, [isAdmin]);
 
-  const handleEdit = (p: Product) => {
-    const cat = p.category && CATEGORY_OPTIONS.includes(p.category) ? p.category : CATEGORY_OPTIONS[0];
-    setForm({
-      id: p.id,
-      name: p.name,
-      price: String(p.price),
-      category: cat,
-      highlights: Boolean(p.highlights),
-      stock: p.stock != null ? String(p.stock) : '',
-    });
-  };
+  useEffect(() => {
+    if (!isAdmin) return;
+
+    if (!editId) {
+      resetForm();
+      return;
+    }
+
+    const loadProduct = async () => {
+      setPrefillLoading(true);
+      try {
+        const snap = await getDoc(doc(db, 'produtos', String(editId)));
+        if (snap.exists()) {
+          const data = snap.data();
+          const incomingCat = typeof data?.category === 'string' && data.category.trim() ? data.category.trim() : DEFAULT_CATEGORIES[0];
+          setCategories((prev) => {
+            const exists = prev.some((c) => c.toLowerCase() === incomingCat.toLowerCase());
+            return exists ? prev : [...prev, incomingCat];
+          });
+          setForm({
+            id: snap.id,
+            name: data?.name ?? '',
+            price: data?.price != null ? String(data.price) : '',
+            category: incomingCat,
+            highlights: Boolean(data?.highlights),
+            stock: data?.stock != null ? String(data.stock) : '',
+          });
+        } else {
+          Alert.alert('Produto não encontrado', 'Verifique se ele ainda existe.');
+          resetForm();
+        }
+      } catch (err) {
+        Alert.alert('Erro', 'Falha ao carregar produto para edição.');
+        resetForm();
+      } finally {
+        setPrefillLoading(false);
+      }
+    };
+
+    loadProduct();
+  }, [editId, isAdmin]);
 
   const resetForm = () =>
-    setForm({ id: '', name: '', price: '', category: CATEGORY_OPTIONS[0], highlights: false, stock: '' });
+    setForm({ id: '', name: '', price: '', category: categories[0] ?? DEFAULT_CATEGORIES[0], highlights: false, stock: '' });
+
+  const handleAddCategory = () => {
+    const value = newCategory.trim();
+    if (!value) return;
+    setCategories((prev) => {
+      const exists = prev.some((c) => c.toLowerCase() === value.toLowerCase());
+      if (exists) return prev;
+      return [...prev, value];
+    });
+    setForm((f) => ({ ...f, category: value }));
+    setNewCategory('');
+  };
+
+  const handleRemoveCategory = (cat: string) => {
+    Alert.alert('Remover categoria', `Deseja remover "${cat}"?`, [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Remover',
+        style: 'destructive',
+        onPress: () => {
+          setCategories((prev) => {
+            const next = prev.filter((c) => c !== cat);
+            if (next.length === 0) return prev; // mantém pelo menos uma
+            if (form.category === cat) {
+              setForm((f) => ({ ...f, category: next[0] }));
+            }
+            return next;
+          });
+        },
+      },
+    ]);
+  };
 
   const handleSave = async () => {
     if (!form.name.trim() || !form.price.trim()) {
@@ -124,7 +175,15 @@ export default function EstoqueScreen() {
       return;
     }
 
-    const category = CATEGORY_OPTIONS.includes(form.category) ? form.category : CATEGORY_OPTIONS[0];
+    const category = form.category.trim();
+    if (!category) {
+      Alert.alert('Atenção', 'Informe uma categoria.');
+      return;
+    }
+    setCategories((prev) => {
+      const exists = prev.some((c) => c.toLowerCase() === category.toLowerCase());
+      return exists ? prev : [...prev, category];
+    });
 
     try {
       setSaving(true);
@@ -149,23 +208,6 @@ export default function EstoqueScreen() {
         });
       }
       resetForm();
-      // reload
-      const snap = await getDocs(collection(db, 'produtos'));
-      const list: Product[] = snap.docs.map((d) => {
-        const data = d.data();
-          const cat = CATEGORY_OPTIONS.includes(data?.category) ? data?.category : CATEGORY_OPTIONS[0];
-        return {
-          id: d.id,
-          name: data?.name ?? 'Produto',
-          price: Number(data?.price) || 0,
-            category: cat,
-          highlights: Boolean(data?.highlights),
-            stock: Number(data?.stock ?? 0),
-          createdAt: data?.createdAt ?? null,
-          updatedAt: data?.updatedAt ?? null,
-        };
-      });
-      setProducts(list);
     } catch (err: any) {
       console.error('Erro ao salvar produto', err);
       Alert.alert('Erro', err?.message ?? 'Não foi possível salvar.');
@@ -173,18 +215,6 @@ export default function EstoqueScreen() {
       setSaving(false);
     }
   };
-
-  const renderItem = ({ item }: { item: Product }) => (
-    <Pressable style={styles.card} onPress={() => handleEdit(item)}>
-      <View style={{ flex: 1 }}>
-        <Text style={styles.cardTitle}>{item.name}</Text>
-        <Text style={styles.cardMeta}>Categoria: {item.category || '-'} • Destaque: {item.highlights ? 'Sim' : 'Não'}</Text>
-        <Text style={styles.cardMeta}>Estoque: {item.stock ?? 0}</Text>
-        <Text style={styles.cardPrice}>R$ {item.price.toFixed(2)}</Text>
-      </View>
-      <Text style={styles.editHint}>Editar</Text>
-    </Pressable>
-  );
 
   if (!isAdmin) {
     return null;
@@ -228,13 +258,14 @@ export default function EstoqueScreen() {
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={{ gap: 8, paddingVertical: 4 }}
               >
-                {CATEGORY_OPTIONS.map((cat) => {
+                {categories.map((cat) => {
                   const selected = form.category === cat;
                   return (
                     <Pressable
                       key={cat}
                       style={[styles.chip, selected && styles.chipSelected]}
                       onPress={() => setForm((f) => ({ ...f, category: cat }))}
+                      onLongPress={() => handleRemoveCategory(cat)}
                     >
                       <Text style={[styles.chipText, selected && styles.chipTextSelected]}>{cat}</Text>
                     </Pressable>
@@ -272,18 +303,36 @@ export default function EstoqueScreen() {
             </View>
           </View>
 
-          <Text style={styles.listTitle}>Produtos</Text>
-          {loading ? (
-            <Text style={styles.loading}>Carregando...</Text>
-          ) : (
-            <FlatList
-              data={products}
-              keyExtractor={(item) => item.id}
-              renderItem={renderItem}
-              ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
-              scrollEnabled={false}
-            />
-          )}
+          <View style={styles.categoryCard}>
+            <Text style={styles.formTitle}>Criar ou Remover categorias</Text>
+            <View style={styles.addCategoryRow}>
+              <TextInput
+                value={newCategory}
+                onChangeText={setNewCategory}
+                placeholder="Nova categoria"
+                style={[styles.input, styles.addCategoryInput]}
+              />
+              <Pressable style={[styles.button, styles.primary, styles.addCategoryButton]} onPress={handleAddCategory}>
+                <Text style={styles.buttonText}>Criar</Text>
+              </Pressable>
+            </View>
+            <View style={styles.categoryList}>
+              {categories.map((cat) => (
+                <View key={cat} style={styles.categoryItem}>
+                  <Text style={styles.categoryName}>{cat}</Text>
+                  <Pressable
+                    style={[styles.button, styles.secondary, styles.removeButton]}
+                    onPress={() => handleRemoveCategory(cat)}
+                  >
+                    <Text style={[styles.buttonText, styles.secondaryText]}>Remover</Text>
+                  </Pressable>
+                </View>
+              ))}
+            </View>
+          </View>
+
+          {prefillLoading ? <Text style={styles.loading}>Carregando produto...</Text> : null}
+          <Text style={styles.helper}>Use a aba Produtos para listar e escolher itens para editar.</Text>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -304,6 +353,14 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   formTitle: { fontWeight: '800', color: '#2c1b12' },
+  categoryCard: {
+    backgroundColor: '#fff',
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#eadfd2',
+    gap: 10,
+  },
   field: { gap: 6 },
   label: { fontWeight: '700', color: '#3c2b1e' },
   input: {
@@ -328,8 +385,8 @@ const styles = StyleSheet.create({
   secondary: { borderWidth: 1, borderColor: BRAND, backgroundColor: 'transparent' },
   secondaryText: { color: BRAND },
   buttonText: { fontWeight: '800', color: '#fff' },
-  listTitle: { fontWeight: '800', fontSize: 16, color: '#2c1b12' },
   loading: { color: '#6e5a4b' },
+  helper: { color: '#6e5a4b', marginTop: -2 },
   chip: {
     paddingHorizontal: 16,
     paddingVertical: 8,
@@ -350,18 +407,39 @@ const styles = StyleSheet.create({
   chipTextSelected: {
     color: '#fff',
   },
-  card: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 12,
+  addCategoryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  addCategoryInput: {
+    flex: 1,
+  },
+  addCategoryButton: {
+    paddingHorizontal: 16,
+  },
+  categoryList: {
+    gap: 8,
+    marginTop: 4,
+  },
+  categoryItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     borderWidth: 1,
     borderColor: '#eadfd2',
-    flexDirection: 'row',
-    gap: 10,
-    alignItems: 'center',
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    backgroundColor: '#fdfaf6',
   },
-  cardTitle: { fontWeight: '800', fontSize: 15, color: '#2c1b12' },
-  cardMeta: { color: '#6e5a4b' },
-  cardPrice: { color: BRAND, fontWeight: '800', marginTop: 4 },
-  editHint: { color: BRAND, fontWeight: '700' },
+  categoryName: {
+    fontWeight: '700',
+    color: '#2c1b12',
+  },
+  removeButton: {
+    flex: 0,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
 });

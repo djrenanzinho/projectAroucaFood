@@ -21,6 +21,8 @@ import { styles } from "@/styles/index.styles";
 
 type ProductWithCategory = Product & { category?: string | null };
 
+const DEFAULT_CATEGORIES = ["Churrasco", "Suínos e Frangos", "Kits", "Bebidas"];
+
 const normalize = (value: string | null | undefined) =>
   value?.toString().normalize("NFD").replace(/\p{Diacritic}/gu, "").trim().toLowerCase() || "";
 
@@ -35,15 +37,21 @@ export default function HomeScreen() {
   const [cartCount, setCartCount] = useState(0);
   const [cartMessage, setCartMessage] = useState<string | null>(null);
 
-  const categories = useMemo(
-    () => [
-      { id: "Churrasco", name: "Churrasco" },
-      { id: "Suínos e Frangos", name: "Suínos e Frangos" },
-      { id: "Kits", name: "Kits" },
-      { id: "Bebidas", name: "Bebidas" },
-    ],
-    []
-  );
+  const categories = useMemo(() => {
+    const set = new Set<string>();
+    products.forEach((p) => {
+      const cat = typeof p.category === "string" ? p.category.trim() : "";
+      if (cat) set.add(cat);
+    });
+    const list = Array.from(set);
+    return (list.length ? list : DEFAULT_CATEGORIES).map((c) => ({ id: c, name: c }));
+  }, [products]);
+
+  useEffect(() => {
+    if (selectedCategory && !categories.some((c) => normalize(c.id) === normalize(selectedCategory))) {
+      setSelectedCategory(null);
+    }
+  }, [categories, selectedCategory]);
 
   useEffect(() => {
     let active = true;

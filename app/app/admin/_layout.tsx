@@ -23,6 +23,13 @@ export default function AdminLayout() {
         }}
       />
       <Tabs.Screen
+        name="produtos"
+        options={{
+          title: 'Produtos',
+          tabBarIcon: ({ color }) => <IconSymbol size={26} name="list.bullet" color={color} />,
+        }}
+      />
+      <Tabs.Screen
         name="profile"
         options={{
           title: 'Perfil',
