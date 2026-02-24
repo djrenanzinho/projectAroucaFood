@@ -39,7 +39,7 @@ export const styles = StyleSheet.create({
   },
   content: {
     padding: 16,
-    paddingBottom: 32,
+    paddingBottom: 140,
   },
   searchWrap: {
     marginTop: 8,

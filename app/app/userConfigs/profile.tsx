@@ -195,7 +195,7 @@ export default function ProfileScreen() {
     return (
       <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
         <ImageBackground
-          source={require("../../assets/images/background-login.jpeg")}
+          source={require("../../assets/images/backgroundCarne.jpeg")}
           style={styles.bg}
           imageStyle={styles.bgImage}
           blurRadius={8}
@@ -235,7 +235,7 @@ export default function ProfileScreen() {
     return (
       <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
         <ImageBackground
-          source={require("../../assets/images/background-login.jpeg")}
+          source={require("../../assets/images/cartBackground.jpeg")}
           style={styles.bg}
           imageStyle={styles.bgImage}
           blurRadius={8}
@@ -289,7 +289,7 @@ export default function ProfileScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
       <ImageBackground
-        source={require("../../assets/images/background-login.jpeg")}
+        source={require("../../assets/images/backgroundCarne.jpeg")}
         style={styles.bg}
         imageStyle={styles.bgImage}
         blurRadius={8}
@@ -403,7 +403,7 @@ export default function ProfileScreen() {
                     placeholder="••••••••"
                     placeholderTextColor="#888"
                     secureTextEntry={!showPassword}
-                    style={[styles.input, { paddingRight: 44 }]}
+                    style={[styles.input, { flex: 1 }]}
                   />
                   <Pressable
                     style={styles.eyeBtn}
@@ -429,7 +429,7 @@ export default function ProfileScreen() {
                       placeholder="••••••••"
                       placeholderTextColor="#888"
                       secureTextEntry={!showConfirm}
-                      style={[styles.input, { paddingRight: 44 }]}
+                      style={[styles.input, { flex: 1 }]}
                     />
                     <Pressable
                       style={styles.eyeBtn}

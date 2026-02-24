@@ -14,7 +14,7 @@ import { getCart, setQuantity, removeItem, clearCart, type CartItem } from "@/st
 import { styles } from "@/styles/cart.styles";
 
 const BRAND = "#942229";
-const bgImage = require("../../assets/images/cart-background.jpeg");
+const bgImage = require("../../assets/images/cartBackground.jpeg");
 const placeholderProduct = require("../../assets/images/logo.png");
 
 export default function CartScreen() {

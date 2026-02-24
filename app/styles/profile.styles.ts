@@ -55,6 +55,7 @@ export const styles = StyleSheet.create({
     alignItems: "center",
     borderBottomWidth: 1,
     borderColor: "#ccc",
+    paddingRight: 44,
   },
   eyeBtn: {
     position: "absolute",
