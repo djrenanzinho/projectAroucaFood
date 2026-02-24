@@ -138,7 +138,7 @@ export default function ProfileScreen() {
         ? ADMIN_EMAILS.map((e) => e.toLowerCase()).includes(email)
         : false;
       if (isAdmin) {
-        router.replace("/admin/estoque");
+        router.replace("/adminConfigs/estoque");
       }
       resetFormFields();
     } catch (err: any) {
@@ -174,7 +174,7 @@ export default function ProfileScreen() {
               <Text style={styles.subtitle}>{user.email}</Text>
 
               <View style={{ gap: 10, marginTop: 10 }}>
-                <Pressable style={[styles.button, styles.primaryBtn]} onPress={() => router.replace("/admin/estoque")}> 
+                <Pressable style={[styles.button, styles.primaryBtn]} onPress={() => router.replace("/adminConfigs/estoque")}> 
                   <Text style={styles.primaryText}>Ir para painel</Text>
                 </Pressable>
                 <Pressable style={[styles.button, styles.secondaryBtn]} onPress={handleLogout}>

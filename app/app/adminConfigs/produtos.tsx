@@ -81,7 +81,7 @@ export default function ProdutosScreen() {
   const handleEdit = () => {
     if (!selected) return;
     closeOptions();
-    router.push({ pathname: '/admin/estoque', params: { editId: selected.id } });
+    router.push({ pathname: '/adminConfigs/estoque', params: { editId: selected.id } });
   };
 
   const handleDelete = () => {
@@ -125,7 +125,7 @@ export default function ProdutosScreen() {
     <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
       <View style={styles.headerRow}>
         <Text style={styles.title}>Produtos</Text>
-        <Pressable style={[styles.button, styles.primary]} onPress={() => router.push('/admin/estoque')}>
+        <Pressable style={[styles.button, styles.primary]} onPress={() => router.push('/adminConfigs/estoque')}>
           <Text style={styles.buttonText}>Novo</Text>
         </Pressable>
       </View>
@@ -180,7 +180,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   primary: { backgroundColor: BRAND },
+  secondary: {
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: BRAND,
+  },
   buttonText: { fontWeight: '800', color: '#fff' },
+  secondaryText: { color: BRAND },
   loading: { color: '#6e5a4b' },
   listContent: { paddingBottom: 24 },
   card: {
