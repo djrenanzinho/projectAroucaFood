@@ -29,6 +29,7 @@ export default function ProfileScreen() {
   const [addressNumber, setAddressNumber] = useState("");
   const [complement, setComplement] = useState("");
   const [cep, setCep] = useState("");
+  const [cpf, setCpf] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -46,12 +47,26 @@ export default function ProfileScreen() {
     addressNumber?: string | null;
     complement?: string | null;
     cep?: string | null;
+    cpf?: string | null;
   } | null>(null);
   const [profileLoading, setProfileLoading] = useState(false);
   const isAdmin = useMemo(() => {
     const email = user?.email?.toLowerCase();
     return email ? ADMIN_EMAILS.map((e) => e.toLowerCase()).includes(email) : false;
   }, [user]);
+
+  const formatCpfValue = (value: string) => {
+    const digits = value.replace(/\D/g, "");
+    const part1 = digits.slice(0, 3);
+    const part2 = digits.slice(3, 6);
+    const part3 = digits.slice(6, 9);
+    const part4 = digits.slice(9, 11);
+    let formatted = part1;
+    if (part2) formatted += `.${part2}`;
+    if (part3) formatted += `.${part3}`;
+    if (part4) formatted += `-${part4}`;
+    return formatted;
+  };
 
   const resetFormFields = () => {
     setFullName("");
@@ -60,6 +75,7 @@ export default function ProfileScreen() {
     setAddressNumber("");
     setComplement("");
     setCep("");
+    setCpf("");
     setEmail("");
     setPassword("");
     setConfirm("");
@@ -90,6 +106,7 @@ export default function ProfileScreen() {
             addressNumber: data?.addressNumber,
             complement: data?.complement,
             cep: data?.cep,
+            cpf: data?.cpf,
           });
         }
       } catch (err) {
@@ -110,14 +127,25 @@ export default function ProfileScreen() {
   const handleSubmit = async () => {
     const trimmedEmail = email.trim();
     const trimmedPass = password.trim();
+    const normalizedCpf = cpf.replace(/\D/g, "");
 
     if (!trimmedEmail || !trimmedPass) {
       Alert.alert("Atenção", "Preencha email e senha.");
       return;
     }
 
+    if (trimmedPass.length < 6) {
+      Alert.alert("Atenção", "A senha deve ter no mínimo 6 caracteres.");
+      return;
+    }
+
     if (mode === "signup" && (!fullName.trim() || !phone.trim())) {
       Alert.alert("Atenção", "Informe nome e celular para criar a conta.");
+      return;
+    }
+
+    if (mode === "signup" && !normalizedCpf) {
+      Alert.alert("Atenção", "Informe um CPF válido.");
       return;
     }
 
@@ -157,6 +185,7 @@ export default function ProfileScreen() {
           addressNumber: addressNumber.trim(),
           complement: complement.trim() || null,
           cep: cep.trim(),
+          cpf: normalizedCpf,
           email: userCred.user.email ?? trimmedEmail,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
@@ -227,6 +256,8 @@ export default function ProfileScreen() {
     const displayName = profileData?.name || user.displayName || fullName || "Nome não informado";
     const phoneNumber = profileData?.phone || user.phoneNumber || phone || "Telefone não informado";
     const profileEmail = profileData?.email || user.email || email || "Email não informado";
+    const displayCpfValue = profileData?.cpf || cpf;
+    const displayCpf = displayCpfValue ? formatCpfValue(displayCpfValue) : "CPF não informado";
     const displayAddress = profileData?.address || "Endereço não informado";
     const displayAddressNumber = profileData?.addressNumber || "Número não informado";
     const displayComplement = profileData?.complement || "Complemento não informado";
@@ -251,6 +282,9 @@ export default function ProfileScreen() {
               <View style={{ gap: 10, marginTop: 6 }}>
                 <Text style={styles.label}>Nome</Text>
                 <Text style={styles.input}>{displayName}</Text>
+
+                <Text style={styles.label}>CPF</Text>
+                <Text style={styles.input}>{displayCpf}</Text>
 
                 <Text style={styles.label}>Telefone</Text>
                 <Text style={styles.input}>{phoneNumber}</Text>
@@ -322,6 +356,18 @@ export default function ProfileScreen() {
                   </View>
 
                   <View style={styles.formGroup}>
+                    <Text style={styles.label}>CPF</Text>
+                    <TextInput
+                      value={cpf}
+                      onChangeText={(text) => setCpf(formatCpfValue(text))}
+                      placeholder="000.000.000-00"
+                      placeholderTextColor="#888"
+                      keyboardType="number-pad"
+                      style={styles.input}
+                    />
+                  </View>
+
+                  <View style={styles.formGroup}>
                     <Text style={styles.label}>Celular</Text>
                     <TextInput
                       value={phone}
@@ -329,6 +375,18 @@ export default function ProfileScreen() {
                       placeholder="(00) 00000-0000"
                       placeholderTextColor="#888"
                       keyboardType="phone-pad"
+                      style={styles.input}
+                    />
+                  </View>
+
+                  <View style={styles.formGroup}>
+                    <Text style={styles.label}>CEP</Text>
+                    <TextInput
+                      value={cep}
+                      onChangeText={setCep}
+                      placeholder="00000-000"
+                      placeholderTextColor="#888"
+                      keyboardType="number-pad"
                       style={styles.input}
                     />
                   </View>
@@ -367,17 +425,7 @@ export default function ProfileScreen() {
                     />
                   </View>
 
-                  <View style={styles.formGroup}>
-                    <Text style={styles.label}>CEP</Text>
-                    <TextInput
-                      value={cep}
-                      onChangeText={setCep}
-                      placeholder="00000-000"
-                      placeholderTextColor="#888"
-                      keyboardType="number-pad"
-                      style={styles.input}
-                    />
-                  </View>
+                  
                 </>
               ) : null}
 

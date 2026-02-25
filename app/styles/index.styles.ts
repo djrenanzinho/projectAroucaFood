@@ -146,6 +146,12 @@ export const styles = StyleSheet.create({
     fontWeight: "800",
     color: "#3b2f28",
   },
+  cardImage: {
+    width: 82,
+    height: 82,
+    borderRadius: 12,
+    backgroundColor: "#f0e9e1",
+  },
   cardPrice: {
     marginTop: 6,
     fontSize: 15,

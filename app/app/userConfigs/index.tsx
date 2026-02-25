@@ -18,10 +18,15 @@ import type { Product } from "@/types/Product";
 import { collection, getDocs } from "firebase/firestore";
 import { addOrIncrementItem, getCart } from "@/storage/cart";
 import { styles } from "@/styles/index.styles";
+import { getProductImage } from "@/constants/productImages";
 
 type ProductWithCategory = Product & { category?: string | null };
 
+type Category = { id: string; name: string };
+
 const DEFAULT_CATEGORIES = ["Churrasco", "Suínos e Frangos", "Kits", "Bebidas"];
+
+const mapDefaultCategories = (): Category[] => DEFAULT_CATEGORIES.map((c) => ({ id: c, name: c }));
 
 const normalize = (value: string | null | undefined) =>
   value?.toString().normalize("NFD").replace(/\p{Diacritic}/gu, "").trim().toLowerCase() || "";
@@ -32,26 +37,52 @@ export default function HomeScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [products, setProducts] = useState<ProductWithCategory[]>([]);
+  const [categories, setCategories] = useState<Category[]>(mapDefaultCategories());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [cartCount, setCartCount] = useState(0);
   const [cartMessage, setCartMessage] = useState<string | null>(null);
-
-  const categories = useMemo(() => {
-    const set = new Set<string>();
-    products.forEach((p) => {
-      const cat = typeof p.category === "string" ? p.category.trim() : "";
-      if (cat) set.add(cat);
-    });
-    const list = Array.from(set);
-    return (list.length ? list : DEFAULT_CATEGORIES).map((c) => ({ id: c, name: c }));
-  }, [products]);
 
   useEffect(() => {
     if (selectedCategory && !categories.some((c) => normalize(c.id) === normalize(selectedCategory))) {
       setSelectedCategory(null);
     }
   }, [categories, selectedCategory]);
+
+  useEffect(() => {
+    let active = true;
+    const loadCategories = async () => {
+      try {
+        const snap = await getDocs(collection(db, "categorias"));
+        if (!active) return;
+        const fetched: Category[] = snap.docs
+          .map((d) => {
+            const data = d.data();
+            const name = typeof data?.nome === "string" ? data.nome.trim() : typeof data?.name === "string" ? data.name.trim() : "";
+            return name ? { id: d.id, name } : null;
+          })
+          .filter(Boolean) as Category[];
+
+        const unique = new Map<string, Category>();
+        mapDefaultCategories().forEach((cat) => unique.set(normalize(cat.name), cat));
+        fetched.forEach((cat) => {
+          const key = normalize(cat.name);
+          if (!unique.has(key)) unique.set(key, cat);
+        });
+
+        setCategories(Array.from(unique.values()));
+      } catch (err) {
+        console.warn("Falha ao carregar categorias", err);
+        setCategories(mapDefaultCategories());
+      }
+    };
+
+    loadCategories();
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -83,6 +114,7 @@ export default function HomeScreen() {
             name: data?.name ?? "Produto sem nome",
             price: Number(data?.price) || 0,
             category: data?.category ?? null,
+            image: typeof data?.image === "string" ? data.image : null,
             highlights: Boolean(data?.highlights),
             stock: Number(data?.stock ?? 0),
             createdAt: data?.createdAt ?? null,
@@ -246,6 +278,9 @@ export default function HomeScreen() {
             }
             renderItem={({ item }) => (
               <BlurView intensity={60} tint="light" style={styles.card}>
+                {getProductImage(item.image) ? (
+                  <Image source={getProductImage(item.image)!} style={styles.cardImage} resizeMode="cover" />
+                ) : null}
                 <View style={{ flex: 1 }}>
                   <Text style={styles.cardTitle}>{item.name}</Text>
                   <Text style={styles.cardPrice}>R$ {item.price.toFixed(2)}</Text>
@@ -289,6 +324,9 @@ export default function HomeScreen() {
             }
             renderItem={({ item }) => (
               <BlurView intensity={35} tint="light" style={styles.card}>
+                {getProductImage(item.image) ? (
+                  <Image source={getProductImage(item.image)!} style={styles.cardImage} resizeMode="cover" />
+                ) : null}
                 <View style={{ flex: 1 }}>
                   <Text style={styles.cardTitle}>{item.name}</Text>
                   <Text style={styles.cardPrice}>R$ {item.price.toFixed(2)}</Text>

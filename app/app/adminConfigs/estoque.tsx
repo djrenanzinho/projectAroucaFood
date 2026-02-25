@@ -4,6 +4,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
+  Image,
   ScrollView,
   StyleSheet,
   Switch,
@@ -16,6 +17,7 @@ import { addDoc, collection, deleteDoc, doc, getDoc, getDocs, serverTimestamp, u
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { auth, db } from '@/firebaseConfig';
 import { ADMIN_EMAILS } from '@/constants/adminEmails';
+import { PRODUCT_IMAGE_OPTIONS, getProductImage } from '@/constants/productImages';
 
 const BRAND = '#942229';
 const DEFAULT_CATEGORIES = ['Churrasco', 'Suínos e Frangos', 'Kits', 'Bebidas'];
@@ -23,19 +25,30 @@ const DEFAULT_CATEGORIES = ['Churrasco', 'Suínos e Frangos', 'Kits', 'Bebidas']
 type Category = { id: string; name: string };
 const mapDefaultCategories = (): Category[] => DEFAULT_CATEGORIES.map((c) => ({ id: `default-${c}`, name: c }));
 
+type FormState = {
+  id: string;
+  name: string;
+  price: string;
+  category: string;
+  highlights: boolean;
+  stock: string;
+  image: string;
+};
+
 export default function EstoqueScreen() {
   const router = useRouter();
   const user = auth.currentUser;
 
   const [categories, setCategories] = useState<Category[]>(mapDefaultCategories());
 
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<FormState>({
     id: '',
     name: '',
     price: '',
     category: DEFAULT_CATEGORIES[0],
     highlights: false,
     stock: '',
+    image: PRODUCT_IMAGE_OPTIONS[0] ?? '',
   });
   const [saving, setSaving] = useState(false);
   const [prefillLoading, setPrefillLoading] = useState(false);
@@ -119,6 +132,7 @@ export default function EstoqueScreen() {
             category: incomingCat,
             highlights: Boolean(data?.highlights),
             stock: data?.stock != null ? String(data.stock) : '',
+            image: typeof data?.image === 'string' ? data.image : PRODUCT_IMAGE_OPTIONS[0] ?? '',
           });
         } else {
           Alert.alert('Produto não encontrado', 'Verifique se ele ainda existe.');
@@ -136,7 +150,15 @@ export default function EstoqueScreen() {
   }, [editId, isAdmin]);
 
   const resetForm = () =>
-    setForm({ id: '', name: '', price: '', category: categories[0]?.name ?? DEFAULT_CATEGORIES[0], highlights: false, stock: '' });
+    setForm({
+      id: '',
+      name: '',
+      price: '',
+      category: categories[0]?.name ?? DEFAULT_CATEGORIES[0],
+      highlights: false,
+      stock: '',
+      image: PRODUCT_IMAGE_OPTIONS[0] ?? '',
+    });
 
   const handleAddCategory = async () => {
     const value = newCategory.trim();
@@ -244,6 +266,7 @@ export default function EstoqueScreen() {
       Alert.alert('Atenção', 'Informe nome e preço.');
       return;
     }
+
     const priceNumber = parseNumber(form.price);
     if (Number.isNaN(priceNumber)) {
       Alert.alert('Atenção', 'Preço inválido.');
@@ -261,6 +284,9 @@ export default function EstoqueScreen() {
       Alert.alert('Atenção', 'Informe uma categoria.');
       return;
     }
+
+    const imageKey = form.image?.trim() || '';
+
     setCategories((prev) => {
       const exists = prev.some((c) => c.name.toLowerCase() === category.toLowerCase());
       return exists ? prev : [...prev, { id: `temp-${category}`, name: category }];
@@ -273,6 +299,7 @@ export default function EstoqueScreen() {
           name: form.name.trim(),
           price: priceNumber,
           category,
+          image: imageKey || null,
           highlights: form.highlights,
           stock: stockNumber,
           updatedAt: serverTimestamp(),
@@ -282,6 +309,7 @@ export default function EstoqueScreen() {
           name: form.name.trim(),
           price: priceNumber,
           category,
+          image: imageKey || null,
           highlights: form.highlights,
           stock: stockNumber,
           createdAt: serverTimestamp(),
@@ -349,6 +377,31 @@ export default function EstoqueScreen() {
                       onLongPress={() => handleRemoveCategory(cat.id)}
                     >
                       <Text style={[styles.chipText, selected && styles.chipTextSelected]}>{cat.name}</Text>
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+            </View>
+            <View style={styles.field}>
+              <Text style={styles.label}>Imagem</Text>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ gap: 10, paddingVertical: 4 }}
+              >
+                {PRODUCT_IMAGE_OPTIONS.map((img) => {
+                  const selected = form.image === img;
+                  const source = getProductImage(img);
+                  return (
+                    <Pressable
+                      key={img}
+                      style={[styles.imageChip, selected && styles.imageChipSelected]}
+                      onPress={() => setForm((f) => ({ ...f, image: img }))}
+                    >
+                      {source ? <Image source={source} style={styles.imageThumb} resizeMode="cover" /> : null}
+                      <Text style={[styles.imageText, selected && styles.imageTextSelected]} numberOfLines={1}>
+                        {img.replace(/\.[^.]+$/, '')}
+                      </Text>
                     </Pressable>
                   );
                 })}
@@ -509,6 +562,27 @@ const styles = StyleSheet.create({
   chipTextSelected: {
     color: '#fff',
   },
+  imageChip: {
+    width: 110,
+    borderWidth: 1,
+    borderColor: '#d9cfc2',
+    borderRadius: 12,
+    padding: 8,
+    backgroundColor: '#fdfaf6',
+    alignItems: 'center',
+    gap: 6,
+  },
+  imageChipSelected: {
+    borderColor: BRAND,
+    shadowColor: BRAND,
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 2,
+  },
+  imageThumb: { width: 70, height: 70, borderRadius: 10 },
+  imageText: { fontSize: 12, textAlign: 'center', color: '#3c2b1e', fontWeight: '700' },
+  imageTextSelected: { color: BRAND },
   addCategoryRow: {
     flexDirection: 'row',
     alignItems: 'center',

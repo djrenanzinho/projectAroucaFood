@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { Modal, View, Text, Pressable, StyleSheet } from "react-native";
+import { Modal, View, Text, Pressable, StyleSheet, Image } from "react-native";
 import type { Product } from "@/types/Product";
+import { getProductImage } from "@/constants/productImages";
 
 interface ProductModalProps {
   visible: boolean;
@@ -42,6 +43,14 @@ export function ProductModal({ visible, product, onClose, onAdd }: ProductModalP
           <Pressable style={styles.closeX} onPress={onClose}>
             <Text style={styles.closeXText}>×</Text>
           </Pressable>
+
+          {getProductImage(product.image) ? (
+            <Image
+              source={getProductImage(product.image)!}
+              style={styles.heroImage}
+              resizeMode="cover"
+            />
+          ) : null}
 
           <Text style={styles.title}>{product.name}</Text>
           <Text style={styles.price}>Preço: R$ {product.price.toFixed(2)}</Text>
@@ -94,10 +103,19 @@ const styles = StyleSheet.create({
     width: "100%",
     maxWidth: 380,
   },
+  heroImage: {
+    width: "100%",
+    height: 200,
+    borderRadius: 14,
+    marginBottom: 16,
+    marginTop: 6,
+    backgroundColor: "#f4efe8",
+  },
   closeX: {
     position: "absolute",
-    top: 12,
-    right: 12,
+    top: 10,
+    right: 10,
+    zIndex: 2,
     padding: 6,
   },
   closeXText: {

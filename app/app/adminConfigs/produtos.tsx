@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, FlatList, Modal, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { collection, deleteDoc, doc, getDocs } from 'firebase/firestore';
 import { useRouter } from 'expo-router';
@@ -62,6 +63,14 @@ export default function ProdutosScreen() {
     }
     loadProducts();
   }, [isAdmin, loadProducts, router]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!isAdmin) return;
+      setRefreshing(true);
+      loadProducts();
+    }, [isAdmin, loadProducts])
+  );
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
