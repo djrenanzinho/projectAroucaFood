@@ -1,50 +1,93 @@
-# Welcome to your Expo app 👋
+# Arouca Food App
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Aplicativo Expo do projeto Arouca Food.
 
-## Get started
-
-1. Install dependencies
-
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+## Executar
 
 ```bash
-npm run reset-project
+npm install
+npx expo start
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## Principais pontos
 
-## Learn more
+- catálogo de produtos
+- filtros inteligentes por busca, categoria, preço e disponibilidade
+- carrinho com cache local em AsyncStorage e sincronização no Firebase para usuário autenticado
+- área administrativa para produtos e categorias
+- autenticação com Firebase
 
-To learn more about developing your project with Expo, look at the following resources:
+## Categorias padrão
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+- Churrasco
+- Suínos e Frangos
+- Bebidas
+- Cervejas
+- Espetos
+- Itens para churrasco
+- Hamburguer
+- Acompanhamentos
+- Kits
 
-## Join the community
+## JSON de importação
 
-Join our community of developers creating universal apps.
+Arquivo: [data/products-import.json](data/products-import.json)
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+Campos esperados por item:
+
+- `name` (string)
+- `price` (number)
+- `category` (string)
+- `image` (string)
+- `highlights` (boolean)
+- `stock` (number)
+- `expiryDate` (string no formato `AAAA-MM-DD` ou `null`)
+
+## Importar produtos para o Firebase
+
+Baixe uma chave de serviço JSON do projeto no Google Cloud / Firebase e salve como:
+
+- [serviceAccountKey.json](serviceAccountKey.json)
+
+ou defina a variável `GOOGLE_APPLICATION_CREDENTIALS` apontando para esse arquivo.
+
+No terminal, dentro da pasta `app`, rode:
+
+```powershell
+npm run import:products
+```
+
+O importador lê [data/products-import.json](data/products-import.json) e:
+
+- cria categorias que ainda não existem
+- atualiza produtos existentes (mesmo nome)
+- cria produtos novos
+
+### Fluxo recomendado
+
+1. abrir Firebase Console
+2. gerar a service account do projeto
+3. salvar o arquivo como `serviceAccountKey.json` dentro de [app](.)
+4. rodar `npm run import:products`
+
+### Comando alternativo antigo
+
+O importador antigo baseado em login continua disponível em:
+
+```powershell
+npm run import:products:auth
+```
+
+## Arquivos importantes
+
+- [app/index.tsx](app/index.tsx)
+- [app/userConfigs/index.tsx](app/userConfigs/index.tsx)
+- [app/userConfigs/cart.tsx](app/userConfigs/cart.tsx)
+- [app/userConfigs/profile.tsx](app/userConfigs/profile.tsx)
+- [app/adminConfigs/estoque.tsx](app/adminConfigs/estoque.tsx)
+- [config/firebase.ts](config/firebase.ts)
+- [firestore.rules](firestore.rules)
+
+## Documentação completa
+
+Consulte o README principal em [../README.md](../README.md).

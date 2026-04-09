@@ -82,6 +82,11 @@ export const styles = StyleSheet.create({
   cardCategory: {
     color: "#7a6858",
   },
+  stockInfo: {
+    color: "#8a3a30",
+    fontSize: 12,
+    fontWeight: "700",
+  },
   itemPrice: {
     fontWeight: "800",
     color: "#a43b36",
@@ -100,6 +105,9 @@ export const styles = StyleSheet.create({
     height: 36,
     alignItems: "center",
     justifyContent: "center",
+  },
+  qtyBtnDisabled: {
+    opacity: 0.35,
   },
   qtyBtnText: { fontSize: 18, fontWeight: "800", color: "#654332" },
   qtyValueBox: {

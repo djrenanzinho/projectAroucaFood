@@ -15,15 +15,84 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { addDoc, collection, deleteDoc, doc, getDoc, getDocs, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { auth, db } from '@/firebaseConfig';
-import { ADMIN_EMAILS } from '@/constants/adminEmails';
-import { PRODUCT_IMAGE_OPTIONS, getProductImage } from '@/constants/productImages';
+import { auth, db } from '@/config/firebase';
+import { ADMIN_EMAILS } from '@/constants/auth/adminEmails';
+import { PRODUCT_IMAGE_OPTIONS, getProductImage, getProductImageLabel } from '@/constants/media/productImages';
 
 const BRAND = '#942229';
-const DEFAULT_CATEGORIES = ['Churrasco', 'Suínos e Frangos', 'Kits', 'Bebidas'];
+const DEFAULT_CATEGORIES = [
+  'Churrasco',
+  'Suínos e Frangos',
+  'Bebidas',
+  'Cervejas',
+  'Espetos',
+  'Itens para churrasco',
+  'Hamburguer',
+  'Acompanhamentos',
+  'Kits',
+];
 
 type Category = { id: string; name: string };
 const mapDefaultCategories = (): Category[] => DEFAULT_CATEGORIES.map((c) => ({ id: `default-${c}`, name: c }));
+
+const formatExpiryInput = (value: string) => {
+  const digits = value.replace(/\D/g, '').slice(0, 6);
+
+  if (digits.length <= 2) {
+    return digits;
+  }
+
+  if (digits.length <= 4) {
+    return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+  }
+
+  return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
+};
+
+const formatStorageDateToInput = (value?: string | null) => {
+  if (!value) {
+    return '';
+  }
+
+  const [year, month, day] = value.split('-');
+  if (!year || !month || !day) {
+    return value;
+  }
+
+  return `${day}/${month}/${year.slice(-2)}`;
+};
+
+const normalizeExpiryDateForSave = (value: string) => {
+  const digits = value.replace(/\D/g, '');
+
+  if (!digits) {
+    return { value: '', valid: true };
+  }
+
+  if (digits.length !== 6) {
+    return { value: '', valid: false };
+  }
+
+  const day = Number(digits.slice(0, 2));
+  const month = Number(digits.slice(2, 4));
+  const year = 2000 + Number(digits.slice(4, 6));
+
+  const date = new Date(year, month - 1, day);
+  const isValid =
+    !Number.isNaN(date.getTime()) &&
+    date.getFullYear() === year &&
+    date.getMonth() === month - 1 &&
+    date.getDate() === day;
+
+  if (!isValid) {
+    return { value: '', valid: false };
+  }
+
+  return {
+    value: `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`,
+    valid: true,
+  };
+};
 
 type FormState = {
   id: string;
@@ -32,6 +101,7 @@ type FormState = {
   category: string;
   highlights: boolean;
   stock: string;
+  expiryDate: string;
   image: string;
 };
 
@@ -48,6 +118,7 @@ export default function EstoqueScreen() {
     category: DEFAULT_CATEGORIES[0],
     highlights: false,
     stock: '',
+    expiryDate: '',
     image: PRODUCT_IMAGE_OPTIONS[0] ?? '',
   });
   const [saving, setSaving] = useState(false);
@@ -132,6 +203,7 @@ export default function EstoqueScreen() {
             category: incomingCat,
             highlights: Boolean(data?.highlights),
             stock: data?.stock != null ? String(data.stock) : '',
+            expiryDate: formatStorageDateToInput(typeof data?.expiryDate === 'string' ? data.expiryDate : ''),
             image: typeof data?.image === 'string' ? data.image : PRODUCT_IMAGE_OPTIONS[0] ?? '',
           });
         } else {
@@ -157,6 +229,7 @@ export default function EstoqueScreen() {
       category: categories[0]?.name ?? DEFAULT_CATEGORIES[0],
       highlights: false,
       stock: '',
+      expiryDate: '',
       image: PRODUCT_IMAGE_OPTIONS[0] ?? '',
     });
 
@@ -286,6 +359,13 @@ export default function EstoqueScreen() {
     }
 
     const imageKey = form.image?.trim() || '';
+    const expiryDateInput = form.expiryDate.trim();
+    const expiryDateNormalized = normalizeExpiryDateForSave(expiryDateInput);
+
+    if (!expiryDateNormalized.valid) {
+      Alert.alert('Atenção', 'Data de validade inválida. Use o formato DD/MM/AA.');
+      return;
+    }
 
     setCategories((prev) => {
       const exists = prev.some((c) => c.name.toLowerCase() === category.toLowerCase());
@@ -302,6 +382,7 @@ export default function EstoqueScreen() {
           image: imageKey || null,
           highlights: form.highlights,
           stock: stockNumber,
+          expiryDate: expiryDateNormalized.value || null,
           updatedAt: serverTimestamp(),
         });
       } else {
@@ -312,6 +393,7 @@ export default function EstoqueScreen() {
           image: imageKey || null,
           highlights: form.highlights,
           stock: stockNumber,
+          expiryDate: expiryDateNormalized.value || null,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
         });
@@ -400,7 +482,7 @@ export default function EstoqueScreen() {
                     >
                       {source ? <Image source={source} style={styles.imageThumb} resizeMode="cover" /> : null}
                       <Text style={[styles.imageText, selected && styles.imageTextSelected]} numberOfLines={1}>
-                        {img.replace(/\.[^.]+$/, '')}
+                        {getProductImageLabel(img)}
                       </Text>
                     </Pressable>
                   );
@@ -416,6 +498,19 @@ export default function EstoqueScreen() {
                 keyboardType="number-pad"
                 style={styles.input}
               />
+            </View>
+            <View style={styles.field}>
+              <Text style={styles.label}>Data de validade</Text>
+              <TextInput
+                value={form.expiryDate}
+                onChangeText={(t) => setForm((f) => ({ ...f, expiryDate: formatExpiryInput(t) }))}
+                placeholder="DD/MM/AA (opcional)"
+                keyboardType="number-pad"
+                maxLength={8}
+                autoCapitalize="none"
+                style={styles.input}
+              />
+              <Text style={styles.helperInline}>Digite apenas os números. Exemplo: 030426</Text>
             </View>
             <View style={[styles.field, styles.switchRow]}>
               <Text style={styles.label}>Destaque (Promoções)</Text>
@@ -438,12 +533,12 @@ export default function EstoqueScreen() {
           </View>
 
           <View style={styles.categoryCard}>
-            <Text style={styles.formTitle}>Criar ou Remover categorias</Text>
+            <Text style={styles.formTitle}>Gerenciar categorias</Text>
             <View style={styles.addCategoryRow}>
               <TextInput
                 value={newCategory}
                 onChangeText={setNewCategory}
-                placeholder="Nova categoria"
+                placeholder={renameTarget ? "Novo nome da categoria" : "Nova categoria"}
                 style={[styles.input, styles.addCategoryInput]}
               />
               <Pressable style={[styles.button, styles.primary, styles.addCategoryButton]} onPress={handleAddCategory}>
@@ -461,16 +556,24 @@ export default function EstoqueScreen() {
               {categories.map((cat) => (
                 <View key={cat.id} style={styles.categoryItem}>
                   <Text style={styles.categoryName}>{cat.name}</Text>
-                  <Pressable
-                    style={[styles.button, styles.secondary, styles.removeButton]}
-                    onPress={() =>
-                      cat.id.startsWith('default-') ? handleStartRename(cat) : handleRemoveCategory(cat.id)
-                    }
-                  >
-                    <Text style={[styles.buttonText, styles.secondaryText]}>
-                      {cat.id.startsWith('default-') ? 'Renomear' : 'Remover'}
-                    </Text>
-                  </Pressable>
+
+                  <View style={styles.categoryActions}>
+                    <Pressable
+                      style={[styles.button, styles.secondary, styles.categoryActionButton]}
+                      onPress={() => handleStartRename(cat)}
+                    >
+                      <Text style={[styles.buttonText, styles.secondaryText]}>Renomear</Text>
+                    </Pressable>
+
+                    {!cat.id.startsWith('default-') ? (
+                      <Pressable
+                        style={[styles.button, styles.dangerButton, styles.categoryActionButton]}
+                        onPress={() => handleRemoveCategory(cat.id)}
+                      >
+                        <Text style={styles.buttonText}>Remover</Text>
+                      </Pressable>
+                    ) : null}
+                  </View>
                 </View>
               ))}
             </View>
@@ -508,6 +611,7 @@ const styles = StyleSheet.create({
   },
   field: { gap: 6 },
   label: { fontWeight: '700', color: '#3c2b1e' },
+  helperInline: { color: '#6e5a4b', fontSize: 12 },
   input: {
     borderWidth: 1,
     borderColor: '#d9cfc2',
@@ -528,6 +632,7 @@ const styles = StyleSheet.create({
   primary: { backgroundColor: BRAND },
   primaryText: { color: '#fff' },
   secondary: { borderWidth: 1, borderColor: BRAND, backgroundColor: 'transparent' },
+  dangerButton: { backgroundColor: BRAND },
   secondaryText: { color: BRAND },
   buttonText: { fontWeight: '800', color: '#fff' },
   loading: { color: '#6e5a4b' },
@@ -612,9 +717,17 @@ const styles = StyleSheet.create({
   categoryName: {
     fontWeight: '700',
     color: '#2c1b12',
+    flex: 1,
+    paddingRight: 12,
   },
-  removeButton: {
+  categoryActions: {
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'center',
+  },
+  categoryActionButton: {
     flex: 0,
+    minWidth: 96,
     paddingHorizontal: 12,
     paddingVertical: 8,
   },

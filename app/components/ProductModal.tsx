@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Modal, View, Text, Pressable, StyleSheet, Image } from "react-native";
 import type { Product } from "@/types/Product";
-import { getProductImage } from "@/constants/productImages";
+import { getProductImage } from "@/constants/media/productImages";
 
 interface ProductModalProps {
   visible: boolean;

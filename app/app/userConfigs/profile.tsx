@@ -14,10 +14,11 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "firebase/auth";
-import { auth, db } from "@/firebaseConfig";
-import { ADMIN_EMAILS } from "@/constants/adminEmails";
+import { auth, db } from "@/config/firebase";
+import { ADMIN_EMAILS } from "@/constants/auth/adminEmails";
 import { collection, doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 import { styles } from "@/styles/profile.styles";
+import { clearLocalCartCache, syncCartWithCurrentUser } from "@/services/cart/cart";
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -173,6 +174,7 @@ export default function ProfileScreen() {
       let userCred;
       if (mode === "login") {
         userCred = await signInWithEmailAndPassword(auth, trimmedEmail, trimmedPass);
+        await syncCartWithCurrentUser();
         setMessage("Login realizado com sucesso.");
       } else {
         userCred = await createUserWithEmailAndPassword(auth, trimmedEmail, trimmedPass);
@@ -192,6 +194,7 @@ export default function ProfileScreen() {
         };
         await setDoc(doc(collection(db, "users"), userCred.user.uid), userInfo);
         setProfileData(userInfo);
+        await syncCartWithCurrentUser();
       }
 
       const email = userCred?.user?.email?.toLowerCase();
@@ -211,7 +214,9 @@ export default function ProfileScreen() {
 
   const handleLogout = async () => {
     try {
+      await syncCartWithCurrentUser();
       await signOut(auth);
+      await clearLocalCartCache();
       setMessage("Sessão encerrada");
       resetFormFields();
       router.replace("/");

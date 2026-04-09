@@ -10,7 +10,8 @@ import {
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { getCart, setQuantity, removeItem, clearCart, type CartItem } from "@/storage/cart";
+import { getCart, setQuantity, removeItem, clearCart, type CartItem } from "@/services/cart/cart";
+import { getProductImage } from "@/constants/media/productImages";
 import { styles } from "@/styles/cart.styles";
 
 const BRAND = "#942229";
@@ -58,7 +59,7 @@ export default function CartScreen() {
   const renderItem = ({ item }: { item: CartItem }) => (
     <View style={styles.card}>
       <Image
-        source={placeholderProduct}
+        source={getProductImage(item.image) ?? placeholderProduct}
         style={styles.productImg}
         resizeMode="cover"
       />
@@ -71,6 +72,9 @@ export default function CartScreen() {
           <Text style={styles.itemPrice}>R$ {item.price.toFixed(2)}</Text>
         </View>
         <Text style={styles.cardCategory}>{item.category || ""}</Text>
+        {typeof item.stock === "number" ? (
+          <Text style={styles.stockInfo}>{item.stock > 0 ? "Disponível" : "Sem estoque"}</Text>
+        ) : null}
 
         <View style={styles.qtyRow}>
           <View style={styles.qtyControl}>
@@ -80,7 +84,11 @@ export default function CartScreen() {
             <View style={styles.qtyValueBox}>
               <Text style={styles.qtyText}>{item.qty}</Text>
             </View>
-            <Pressable style={styles.qtyBtn} onPress={() => handleQty(item.productId, item.qty + 1)}>
+            <Pressable
+              style={[styles.qtyBtn, typeof item.stock === "number" && item.qty >= item.stock && styles.qtyBtnDisabled]}
+              disabled={typeof item.stock === "number" && item.qty >= item.stock}
+              onPress={() => handleQty(item.productId, item.qty + 1)}
+            >
               <Text style={styles.qtyBtnText}>+</Text>
             </Pressable>
           </View>

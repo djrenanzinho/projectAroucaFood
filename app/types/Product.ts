@@ -8,6 +8,7 @@ export type Product = {
   image?: string | null;
   highlights?: boolean;
   stock?: number | null;
+  expiryDate?: string | null;
   createdAt?: Timestamp | null;
   updatedAt?: Timestamp | null;
 };

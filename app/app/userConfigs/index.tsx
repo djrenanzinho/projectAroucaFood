@@ -5,7 +5,6 @@ import {
   FlatList,
   Image,
   Pressable,
-  ScrollView,
   Text,
   TextInput,
   View,
@@ -13,18 +12,27 @@ import {
 import { useFocusEffect } from "@react-navigation/native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ProductModal } from "@/components/ProductModal";
-import { db } from "@/firebaseConfig";
+import { db } from "@/config/firebase";
 import type { Product } from "@/types/Product";
 import { collection, getDocs } from "firebase/firestore";
-import { addOrIncrementItem, getCart } from "@/storage/cart";
+import { addOrIncrementItem, getCart } from "@/services/cart/cart";
 import { styles } from "@/styles/index.styles";
-import { getProductImage } from "@/constants/productImages";
+import { getProductImage } from "@/constants/media/productImages";
 
 type ProductWithCategory = Product & { category?: string | null };
-
 type Category = { id: string; name: string };
 
-const DEFAULT_CATEGORIES = ["Churrasco", "Suínos e Frangos", "Kits", "Bebidas"];
+const DEFAULT_CATEGORIES = [
+  "Churrasco",
+  "Suínos e Frangos",
+  "Bebidas",
+  "Cervejas",
+  "Espetos",
+  "Itens para churrasco",
+  "Hamburguer",
+  "Acompanhamentos",
+  "Kits",
+];
 
 const mapDefaultCategories = (): Category[] => DEFAULT_CATEGORIES.map((c) => ({ id: c, name: c }));
 
@@ -51,10 +59,12 @@ export default function HomeScreen() {
 
   useEffect(() => {
     let active = true;
+
     const loadCategories = async () => {
       try {
         const snap = await getDocs(collection(db, "categorias"));
         if (!active) return;
+
         const fetched: Category[] = snap.docs
           .map((d) => {
             const data = d.data();
@@ -97,9 +107,8 @@ export default function HomeScreen() {
         console.warn("Falha ao carregar carrinho", err);
       }
     };
-    syncCart();
 
-    async function fetchProducts() {
+    const fetchProducts = async () => {
       setLoading(true);
       setError(null);
 
@@ -117,6 +126,7 @@ export default function HomeScreen() {
             image: typeof data?.image === "string" ? data.image : null,
             highlights: Boolean(data?.highlights),
             stock: Number(data?.stock ?? 0),
+            expiryDate: typeof data?.expiryDate === "string" ? data.expiryDate : null,
             createdAt: data?.createdAt ?? null,
             updatedAt: data?.updatedAt ?? null,
           };
@@ -132,8 +142,9 @@ export default function HomeScreen() {
           setLoading(false);
         }
       }
-    }
+    };
 
+    syncCart();
     fetchProducts();
 
     return () => {
@@ -144,6 +155,7 @@ export default function HomeScreen() {
   useFocusEffect(
     useCallback(() => {
       let active = true;
+
       const syncCart = async () => {
         try {
           const items = await getCart();
@@ -154,52 +166,143 @@ export default function HomeScreen() {
           console.warn("Falha ao carregar carrinho", err);
         }
       };
+
       syncCart();
+
       return () => {
         active = false;
       };
     }, [])
   );
 
-  const filtered = useMemo(() => {
-    const normalizedQuery = query.trim().toLowerCase();
-    return products.filter((p) => {
+  const filteredProducts = useMemo(() => {
+    const normalizedQuery = normalize(query);
+    return products.filter((product) => {
       const matchesQuery = normalizedQuery
-        ? p.name.toLowerCase().includes(normalizedQuery)
+        ? normalize(product.name).includes(normalizedQuery) || normalize(product.category).includes(normalizedQuery)
         : true;
       const matchesCategory = selectedCategory
-        ? normalize(p.category) === normalize(selectedCategory)
+        ? normalize(product.category) === normalize(selectedCategory)
         : true;
+
       return matchesQuery && matchesCategory;
     });
   }, [products, query, selectedCategory]);
 
-  const filteredHighlights = useMemo(
-    () => filtered.filter((p) => p.highlights),
-    [filtered]
+  const highlightedProducts = useMemo(
+    () => filteredProducts.filter((product) => product.highlights),
+    [filteredProducts]
   );
+
+  const hasActiveFilters = Boolean(query.trim()) || Boolean(selectedCategory);
+
+  const clearFilters = () => {
+    setQuery("");
+    setSelectedCategory(null);
+  };
+
+  const openProduct = (product: ProductWithCategory) => {
+    setSelectedProduct(product);
+    setModalVisible(true);
+  };
 
   const handleAddToCart = async (product: Product, quantity = 1) => {
     try {
-    const available = typeof product.stock === "number" ? product.stock : undefined;
-    if (available !== undefined && available <= 0) {
-      Alert.alert("Indisponível", "Produto sem estoque no momento.");
-      return;
-    }
-    if (available !== undefined && quantity > available) {
-      Alert.alert("Indisponível", "Quantidade solicitada excede o estoque disponível.");
-      return;
-    }
+      const available = typeof product.stock === "number" ? Math.max(0, product.stock) : undefined;
+      const currentItems = await getCart();
+      const currentQty = currentItems.find((item) => item.productId === product.id)?.qty ?? 0;
 
-      const updated = await addOrIncrementItem(product, quantity);
+      if (available !== undefined && available <= 0) {
+        Alert.alert("Indisponível", "Produto sem estoque no momento.");
+        return;
+      }
+
+      const quantityToAdd =
+        available !== undefined ? Math.min(quantity, Math.max(available - currentQty, 0)) : quantity;
+
+      if (quantityToAdd <= 0) {
+        Alert.alert("Limite atingido", "A quantidade máxima disponível desse item já está no carrinho.");
+        return;
+      }
+
+      const updated = await addOrIncrementItem(product, quantityToAdd);
       const total = updated.reduce((sum, item) => sum + item.qty, 0);
+      const adjustedByStock = quantityToAdd < quantity;
+
       setCartCount(total);
-      setCartMessage(`${product.name} adicionado ao carrinho`);
-      setTimeout(() => setCartMessage(null), 1800);
+      setCartMessage(
+        adjustedByStock
+          ? `Adicionamos ${quantityToAdd} unidade(s) de ${product.name} conforme o estoque disponível.`
+          : `${product.name} adicionado ao carrinho`
+      );
+      setTimeout(() => setCartMessage(null), 2200);
       setModalVisible(false);
     } catch (err) {
       Alert.alert("Erro", "Não foi possível adicionar ao carrinho. Tente novamente.");
     }
+  };
+
+  const renderPromoItem = ({ item }: { item: ProductWithCategory }) => {
+    const imageSource = getProductImage(item.image);
+    const isUnavailable = (item.stock ?? 0) <= 0;
+
+    return (
+      <BlurView intensity={60} tint="light" style={styles.promoCard}>
+        {imageSource ? (
+          <Image source={imageSource} style={styles.promoImage} resizeMode="cover" />
+        ) : null}
+
+        <View style={styles.promoContent}>
+          <View style={styles.promoHeaderRow}>
+            <Text style={styles.promoBadge}>Promoção</Text>
+            <Text style={styles.stockText}>{isUnavailable ? "Sem estoque" : "Disponível"}</Text>
+          </View>
+
+          <Text style={styles.cardTitle} numberOfLines={2}>
+            {item.name}
+          </Text>
+          <Text style={styles.cardPrice}>R$ {item.price.toFixed(2)}</Text>
+
+          <Pressable
+            style={[styles.addBtn, isUnavailable && styles.disabledButton]}
+            disabled={isUnavailable}
+            onPress={() => openProduct(item)}
+          >
+            <Text style={styles.addBtnText}>{isUnavailable ? "Indisponível" : "Ver mais"}</Text>
+          </Pressable>
+        </View>
+      </BlurView>
+    );
+  };
+
+  const renderProductItem = ({ item }: { item: ProductWithCategory }) => {
+    const imageSource = getProductImage(item.image);
+    const isUnavailable = (item.stock ?? 0) <= 0;
+
+    return (
+      <BlurView intensity={35} tint="light" style={styles.card}>
+        {imageSource ? (
+          <Image source={imageSource} style={styles.cardImage} resizeMode="cover" />
+        ) : null}
+
+        <View style={styles.cardContent}>
+          <Text style={styles.cardTitle} numberOfLines={2}>
+            {item.name}
+          </Text>
+          <Text style={styles.cardMeta}>{item.category || "Sem categoria"}</Text>
+          <Text style={styles.cardPrice}>R$ {item.price.toFixed(2)}</Text>
+          <Text style={styles.stockText}>{isUnavailable ? "Sem estoque" : "Disponível"}</Text>
+        </View>
+
+        <Pressable
+          style={[styles.addBtn, isUnavailable && styles.disabledButton]}
+          disabled={isUnavailable}
+          onPress={() => openProduct(item)}
+        >
+          <Text style={styles.addBtnText}>{isUnavailable ? "Indisponível" : "Ver mais"}</Text>
+        </Pressable>
+      </BlurView>
+    );
   };
 
   return (
@@ -214,147 +317,125 @@ export default function HomeScreen() {
         </View>
       </SafeAreaView>
 
-      <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.searchWrap}>
-          <TextInput
-            placeholder="Buscar produtos..."
-            placeholderTextColor="#8a8a8a"
-            value={query}
-            onChangeText={setQuery}
-            style={styles.search}
-          />
-        </View>
+      <FlatList
+        data={filteredProducts}
+        keyExtractor={(item) => item.id}
+        renderItem={renderProductItem}
+        ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.content}
+        ListHeaderComponent={
+          <>
+            <View style={styles.searchWrap}>
+              <TextInput
+                placeholder="Buscar por nome ou categoria..."
+                placeholderTextColor="#8a8a8a"
+                value={query}
+                onChangeText={setQuery}
+                style={styles.search}
+              />
+            </View>
 
-        <View style={styles.cartInfoRow}>
-          <Text style={styles.cartInfo}>Carrinho: {cartCount} item(s)</Text>
-          {cartMessage ? <Text style={styles.cartMessage}>{cartMessage}</Text> : null}
-        </View>
-
-        <Text style={styles.sectionTitle}>Categorias</Text>
-        <FlatList
-          data={categories}
-          keyExtractor={(item) => item.id}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.categoriesRow}
-          ItemSeparatorComponent={() => <View style={{ width: 10 }} />}
-          renderItem={({ item }) => {
-            const selected = selectedCategory === item.id;
-            return (
-              <Pressable
-                style={[styles.categoryChip, selected && styles.categoryChipSelected]}
-                onPress={() =>
-                  setSelectedCategory((prev) => (prev === item.id ? null : item.id))
-                }
-              >
-                <Text
-                  style={[styles.categoryChipText, selected && styles.categoryChipTextSelected]}
-                >
-                  {item.name}
-                </Text>
-              </Pressable>
-            );
-          }}
-        />
-
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Promoções</Text>
-        </View>
-
-        {error ? <Text style={styles.errorText}>{error}</Text> : null}
-
-        {loading ? (
-          <Text style={styles.loadingText}>Carregando produtos...</Text>
-        ) : (
-          <FlatList
-            data={filteredHighlights}
-            keyExtractor={(item) => item.id}
-            scrollEnabled={false}
-            ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
-            ListEmptyComponent={
-              !loading ? (
-                <Text style={styles.emptyText}>Nenhum produto em promoção.</Text>
-              ) : null
-            }
-            renderItem={({ item }) => (
-              <BlurView intensity={60} tint="light" style={styles.card}>
-                {getProductImage(item.image) ? (
-                  <Image source={getProductImage(item.image)!} style={styles.cardImage} resizeMode="cover" />
-                ) : null}
+            <View style={styles.summaryCard}>
+              <View style={styles.summaryRow}>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.cardTitle}>{item.name}</Text>
-                  <Text style={styles.cardPrice}>R$ {item.price.toFixed(2)}</Text>
+                  <Text style={styles.summaryTitle}>Compra inteligente</Text>
+                  <Text style={styles.summaryText}>
+                    {cartCount === 0
+                      ? "Seu carrinho está vazio no momento."
+                      : `Seu carrinho tem ${cartCount} item(ns).`}
+                  </Text>
+                  <Text style={styles.summaryText}>
+                    {filteredProducts.length} produto(s) encontrado(s)
+                    {selectedCategory ? ` em ${selectedCategory}` : ""}.
+                  </Text>
                 </View>
 
-                <Pressable
-                    style={[styles.addBtn, (item.stock ?? 0) <= 0 && { opacity: 0.5 }]}
-                    disabled={(item.stock ?? 0) <= 0}
-                    onPress={() => {
-                      setSelectedProduct(item);
-                      setModalVisible(true);
-                    }}
+                {hasActiveFilters ? (
+                  <Pressable style={styles.clearFiltersBtn} onPress={clearFilters}>
+                    <Text style={styles.clearFiltersText}>Limpar filtros</Text>
+                  </Pressable>
+                ) : null}
+              </View>
+
+              {cartMessage ? <Text style={styles.cartMessage}>{cartMessage}</Text> : null}
+            </View>
+
+            <Text style={styles.sectionTitle}>Categorias</Text>
+            <FlatList
+              data={categories}
+              keyExtractor={(item) => item.id}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.categoriesRow}
+              ItemSeparatorComponent={() => <View style={{ width: 10 }} />}
+              renderItem={({ item }) => {
+                const selected = selectedCategory === item.name;
+                return (
+                  <Pressable
+                    style={[styles.categoryChip, selected && styles.categoryChipSelected]}
+                    onPress={() => setSelectedCategory((prev) => (prev === item.name ? null : item.name))}
                   >
-                    <Text style={styles.addBtnText}>
-                      {(item.stock ?? 0) <= 0 ? "Indisponível" : "Ver mais"}
+                    <Text
+                      style={[styles.categoryChipText, selected && styles.categoryChipTextSelected]}
+                    >
+                      {item.name}
                     </Text>
                   </Pressable>
-              </BlurView>
-            )}
-          />
-        )}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Todos os Produtos</Text>
-          <Pressable>
-            <Text style={styles.link}>Ver todos</Text>
-          </Pressable>
-        </View>
+                );
+              }}
+            />
 
-        {loading ? (
-          <Text style={styles.loadingText}>Carregando produtos...</Text>
-        ) : (
-          <FlatList
-            data={filtered}
-            keyExtractor={(item) => item.id}
-            scrollEnabled={false}
-            ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
-            ListEmptyComponent={
-              !loading ? (
-                <Text style={styles.emptyText}>Nenhum produto encontrado.</Text>
-              ) : null
-            }
-            renderItem={({ item }) => (
-              <BlurView intensity={35} tint="light" style={styles.card}>
-                {getProductImage(item.image) ? (
-                  <Image source={getProductImage(item.image)!} style={styles.cardImage} resizeMode="cover" />
-                ) : null}
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.cardTitle}>{item.name}</Text>
-                  <Text style={styles.cardPrice}>R$ {item.price.toFixed(2)}</Text>
-                </View>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Promoções</Text>
+              <Text style={styles.link}>{highlightedProducts.length} item(ns)</Text>
+            </View>
 
-                <Pressable
-                    style={[styles.addBtn, (item.stock ?? 0) <= 0 && { opacity: 0.5 }]}
-                    disabled={(item.stock ?? 0) <= 0}
-                    onPress={() => {
-                      setSelectedProduct(item);
-                      setModalVisible(true);
-                    }}
-                  >
-                      <Text style={styles.addBtnText}>
-                        {(item.stock ?? 0) <= 0 ? "Indisponível" : "Ver mais"}
-                      </Text>
-                  </Pressable>
-              </BlurView>
+            {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
+            {loading ? (
+              <Text style={styles.loadingText}>Carregando produtos...</Text>
+            ) : highlightedProducts.length > 0 ? (
+              <FlatList
+                data={highlightedProducts}
+                keyExtractor={(item) => `promo-${item.id}`}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.promoListContent}
+                ItemSeparatorComponent={() => <View style={{ width: 12 }} />}
+                renderItem={renderPromoItem}
+              />
+            ) : (
+              <Text style={styles.emptyText}>Nenhum produto em promoção para os filtros atuais.</Text>
             )}
-          />
-        )}
-        <ProductModal
-          visible={modalVisible}
-          product={selectedProduct}
-          onClose={() => setModalVisible(false)}
-          onAdd={(product, qty) => handleAddToCart(product, qty)}
-        />
-      </ScrollView>
+
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Todos os produtos</Text>
+              <Text style={styles.link}>
+                {hasActiveFilters ? "Resultados filtrados" : "Catálogo completo"}
+              </Text>
+            </View>
+          </>
+        }
+        ListEmptyComponent={
+          !loading ? (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyText}>Nenhum produto encontrado.</Text>
+              <Text style={styles.emptyHint}>
+                Tente buscar sem acentos, limpar os filtros ou escolher outra categoria.
+              </Text>
+            </View>
+          ) : null
+        }
+      />
+
+      <ProductModal
+        visible={modalVisible}
+        product={selectedProduct}
+        onClose={() => setModalVisible(false)}
+        onAdd={(product, qty) => handleAddToCart(product, qty)}
+      />
     </View>
   );
 }

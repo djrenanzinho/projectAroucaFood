@@ -11,6 +11,7 @@ export type ProductImageKey =
   | "corona.png"
   | "coxinhaAsa.png"
   | "denver.png"
+  | "espeto_baby_beef.jpg"
   | "esptoCoracao.png"
   | "esptoLinguica.png"
   | "esptoSobrecoxa.png"
@@ -39,6 +40,7 @@ export const PRODUCT_IMAGES: Record<ProductImageKey, ImageSourcePropType> = {
   "corona.png": require("@/assets/images/productsImages/corona.png"),
   "coxinhaAsa.png": require("@/assets/images/productsImages/coxinhaAsa.png"),
   "denver.png": require("@/assets/images/productsImages/denver.png"),
+  "espeto_baby_beef.jpg": require("@/assets/images/productsImages/espeto_baby_beef.jpg"),
   "esptoCoracao.png": require("@/assets/images/productsImages/esptoCoracao.png"),
   "esptoLinguica.png": require("@/assets/images/productsImages/esptoLinguica.png"),
   "esptoSobrecoxa.png": require("@/assets/images/productsImages/esptoSobrecoxa.png"),
@@ -57,10 +59,46 @@ export const PRODUCT_IMAGES: Record<ProductImageKey, ImageSourcePropType> = {
   "tulipinhaTEMP.jpg": require("@/assets/images/productsImages/tulipinhaTEMP.jpg"),
 };
 
+export const PRODUCT_IMAGE_LABELS: Record<ProductImageKey, string> = {
+  "amstel.png": "Amstel",
+  "bifeAncho.png": "Bife Ancho",
+  "bifeChorizo.jpg": "Bife Chorizo",
+  "carvao7kg.png": "Carvão 7kg",
+  "coca2l.png": "Coca 2L",
+  "cocaLata.png": "Coca Lata",
+  "contraFile.jpeg": "Contra Filé",
+  "corona.png": "Corona",
+  "coxinhaAsa.png": "Coxinha da Asa",
+  "denver.png": "Denver",
+  "espeto_baby_beef.jpg": "Espeto Baby Beef",
+  "esptoCoracao.png": "Espeto de Coração",
+  "esptoLinguica.png": "Espeto de Linguiça",
+  "esptoSobrecoxa.png": "Espeto de Sobrecoxa",
+  "fileFrangoTEMP.jpeg": "Filé de Frango",
+  "flatIron.png": "Flat Iron",
+  "fraldinha.png": "Fraldinha",
+  "guaranaLata.png": "Guaraná Lata",
+  "gurana2l.png": "Guaraná 2L",
+  "heineken350ml.png": "Heineken 350ml",
+  "heinekenLongNeck.png": "Heineken Long Neck",
+  "original350ml.png": "Original 350ml",
+  "panceta.png": "Panceta",
+  "paoQueijo.png": "Pão de Queijo",
+  "StrogonoffFrango.jpeg": "Strogonoff de Frango",
+  "toscana.png": "Toscana",
+  "tulipinhaTEMP.jpg": "Tulipinha",
+};
+
 export const PRODUCT_IMAGE_OPTIONS = Object.keys(PRODUCT_IMAGES) as ProductImageKey[];
 
 export function getProductImage(key?: string | null) {
   if (!key) return null;
   const normalized = key.trim() as ProductImageKey;
   return PRODUCT_IMAGES[normalized] ?? null;
+}
+
+export function getProductImageLabel(key?: string | null) {
+  if (!key) return '';
+  const normalized = key.trim() as ProductImageKey;
+  return PRODUCT_IMAGE_LABELS[normalized] ?? normalized.replace(/\.[^.]+$/, '');
 }

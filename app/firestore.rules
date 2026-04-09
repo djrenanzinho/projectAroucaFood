@@ -32,6 +32,17 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // Carrinho sincronizado por usuário
+    match /carts/{userId} {
+      allow read, write: if isSignedIn() && request.auth.uid == userId;
+    }
+
+    // Pedidos: criação por usuário autenticado, leitura/edição só para admin
+    match /pedidos/{pedidoId} {
+      allow create: if isSignedIn();
+      allow read, update, delete: if isAdmin();
+    }
+
     // Fallback: deny anything else
     match /{document=**} {
       allow read, write: if false;

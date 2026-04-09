@@ -1,0 +1,416 @@
+﻿[
+    {
+        "name":  "Álcool Gel 80° Acendedor Zulu 500 g",
+        "price":  19.39,
+        "category":  "Itens para churrasco",
+        "image":  null,
+        "highlights":  false,
+        "stock":  5,
+        "expiryDate":  null
+    },
+    {
+        "name":  "Amstel Lata 350 ml",
+        "price":  4.79,
+        "category":  "Cervejas",
+        "image":  "amstel.png",
+        "highlights":  false,
+        "stock":  22,
+        "expiryDate":  null
+    },
+    {
+        "name":  "Bacon Fatiado Seara 250 g",
+        "price":  23.8,
+        "category":  "Acompanhamentos",
+        "image":  null,
+        "highlights":  false,
+        "stock":  0,
+        "expiryDate":  null
+    },
+    {
+        "name":  "Bife Ancho Angus aprox. 600 g",
+        "price":  109.9,
+        "category":  "Churrasco",
+        "image":  "bifeAncho.png",
+        "highlights":  true,
+        "stock":  0,
+        "expiryDate":  "2026-08-23"
+    },
+    {
+        "name":  "Bife Chorizo Angus aprox. 600 g",
+        "price":  129.9,
+        "category":  "Churrasco",
+        "image":  "bifeChorizo.jpg",
+        "highlights":  true,
+        "stock":  0,
+        "expiryDate":  null
+    },
+    {
+        "name":  "Big Burguer Picanha aprox. 360 g",
+        "price":  29.9,
+        "category":  "Churrasco",
+        "image":  null,
+        "highlights":  false,
+        "stock":  0,
+        "expiryDate":  null
+    },
+    {
+        "name":  "Brahma D. Malte Lata 350 ml",
+        "price":  5.49,
+        "category":  "Cervejas",
+        "image":  null,
+        "highlights":  false,
+        "stock":  9,
+        "expiryDate":  "2026-06-08"
+    },
+    {
+        "name":  "Carvão Vegetal Marino 2,5 Kg",
+        "price":  22.9,
+        "category":  "Itens para churrasco",
+        "image":  null,
+        "highlights":  false,
+        "stock":  0,
+        "expiryDate":  "2026-06-20"
+    },
+    {
+        "name":  "Carvão Vegetal Marino 7 Kg",
+        "price":  51.9,
+        "category":  "Itens para churrasco",
+        "image":  "carvao7kg.png",
+        "highlights":  false,
+        "stock":  5,
+        "expiryDate":  "2026-06-17"
+    },
+    {
+        "name":  "Coca Cola 2L",
+        "price":  12.39,
+        "category":  "Bebidas",
+        "image":  "coca2l.png",
+        "highlights":  false,
+        "stock":  6,
+        "expiryDate":  null
+    },
+    {
+        "name":  "Coca Cola Lata 350 ml",
+        "price":  4.8,
+        "category":  "Bebidas",
+        "image":  "cocaLata.png",
+        "highlights":  false,
+        "stock":  24,
+        "expiryDate":  null
+    },
+    {
+        "name":  "Corona Extra Long Neck 330 ml",
+        "price":  9.9,
+        "category":  "Cervejas",
+        "image":  "corona.png",
+        "highlights":  false,
+        "stock":  17,
+        "expiryDate":  null
+    },
+    {
+        "name":  "Coxinha da Asa Temperada aprox. 500 g",
+        "price":  18.9,
+        "category":  "Suínos e Frangos",
+        "image":  "coxinhaAsa.png",
+        "highlights":  false,
+        "stock":  5,
+        "expiryDate":  "2026-04-18"
+    },
+    {
+        "name":  "Denver Steak Angus aprox. 450 g",
+        "price":  89.9,
+        "category":  "Churrasco",
+        "image":  "denver.png",
+        "highlights":  false,
+        "stock":  0,
+        "expiryDate":  "2026-05-23"
+    },
+    {
+        "name":  "Espeto Baby Beef aprox. 700 g",
+        "price":  39.9,
+        "category":  "Espetos",
+        "image":  null,
+        "highlights":  true,
+        "stock":  5,
+        "expiryDate":  null
+    },
+    {
+        "name":  "Espeto de Coração aprox. 500 g",
+        "price":  31.9,
+        "category":  "Espetos",
+        "image":  "esptoCoracao.png",
+        "highlights":  false,
+        "stock":  0,
+        "expiryDate":  null
+    },
+    {
+        "name":  "Espeto de Linguiça aprox. 500 g",
+        "price":  26.9,
+        "category":  "Espetos",
+        "image":  "esptoLinguica.png",
+        "highlights":  false,
+        "stock":  0,
+        "expiryDate":  "2026-04-21"
+    },
+    {
+        "name":  "Espeto de Sobrecoxa apro. 500 g",
+        "price":  29.9,
+        "category":  "Espetos",
+        "image":  "esptoSobrecoxa.png",
+        "highlights":  true,
+        "stock":  7,
+        "expiryDate":  "2026-02-01"
+    },
+    {
+        "name":  "Espeto Queijo Coalho com Óregano Quatá 300 g",
+        "price":  47.9,
+        "category":  "Espetos",
+        "image":  null,
+        "highlights":  false,
+        "stock":  0,
+        "expiryDate":  null
+    },
+    {
+        "name":  "Espeto Queijo Coalho Quatá 300 g",
+        "price":  29.9,
+        "category":  "Espetos",
+        "image":  null,
+        "highlights":  true,
+        "stock":  19,
+        "expiryDate":  null
+    },
+    {
+        "name":  "Farofa Minas Gourmet Tradicional 320 g",
+        "price":  34.9,
+        "category":  "Acompanhamentos",
+        "image":  null,
+        "highlights":  false,
+        "stock":  0,
+        "expiryDate":  null
+    },
+    {
+        "name":  "Farofa Minas Gourmet Madioca Temperada 320 g",
+        "price":  34.9,
+        "category":  "Acompanhamentos",
+        "image":  null,
+        "highlights":  false,
+        "stock":  5,
+        "expiryDate":  null
+    },
+    {
+        "name":  "Flat Iron Angus aprox. 600 g",
+        "price":  89.9,
+        "category":  "Churrasco",
+        "image":  "flatIron.png",
+        "highlights":  false,
+        "stock":  0,
+        "expiryDate":  null
+    },
+    {
+        "name":  "Fraldinha Selecionada aprox. 1,1 Kg",
+        "price":  89.9,
+        "category":  "Churrasco",
+        "image":  "fraldinha.png",
+        "highlights":  false,
+        "stock":  0,
+        "expiryDate":  null
+    },
+    {
+        "name":  "Guaraná Antartica 2L",
+        "price":  11.9,
+        "category":  "Bebidas",
+        "image":  "gurana2l.png",
+        "highlights":  false,
+        "stock":  5,
+        "expiryDate":  null
+    },
+    {
+        "name":  "Guaraná Antartica 350 ml",
+        "price":  4.7,
+        "category":  "Bebidas",
+        "image":  "guaranaLata.png",
+        "highlights":  false,
+        "stock":  6,
+        "expiryDate":  null
+    },
+    {
+        "name":  "Hamburguer Blend da Casa (Patinho com Toque de Bacon) aprox. 300 g",
+        "price":  23.9,
+        "category":  "Hamburguer",
+        "image":  null,
+        "highlights":  false,
+        "stock":  5,
+        "expiryDate":  null
+    },
+    {
+        "name":  "Hamburguer Patinho Zero Gordura aprox. 300 g",
+        "price":  0,
+        "category":  "Hamburguer",
+        "image":  null,
+        "highlights":  false,
+        "stock":  0,
+        "expiryDate":  null
+    },
+    {
+        "name":  "Heineken Lata 269 ml",
+        "price":  5.7,
+        "category":  "Cervejas",
+        "image":  null,
+        "highlights":  false,
+        "stock":  25,
+        "expiryDate":  null
+    },
+    {
+        "name":  "Heineken Lata 350 ml",
+        "price":  7.39,
+        "category":  "Cervejas",
+        "image":  "heineken350ml.png",
+        "highlights":  true,
+        "stock":  35,
+        "expiryDate":  null
+    },
+    {
+        "name":  "Heineken Long Neck 330 ml",
+        "price":  8.9,
+        "category":  "Cervejas",
+        "image":  "heinekenLongNeck.png",
+        "highlights":  false,
+        "stock":  14,
+        "expiryDate":  null
+    },
+    {
+        "name":  "Ketchup Tradicional Heinz 397 g",
+        "price":  23.9,
+        "category":  "Acompanhamentos",
+        "image":  null,
+        "highlights":  false,
+        "stock":  4,
+        "expiryDate":  null
+    },
+    {
+        "name":  "Maionese Heinz 215 g",
+        "price":  17.2,
+        "category":  "Acompanhamentos",
+        "image":  null,
+        "highlights":  false,
+        "stock":  5,
+        "expiryDate":  null
+    },
+    {
+        "name":  "Mostarda Heinz 255 g",
+        "price":  22.4,
+        "category":  "Acompanhamentos",
+        "image":  null,
+        "highlights":  false,
+        "stock":  5,
+        "expiryDate":  null
+    },
+    {
+        "name":  "Original Lata 269 ml",
+        "price":  4.2,
+        "category":  "Cervejas",
+        "image":  null,
+        "highlights":  false,
+        "stock":  4,
+        "expiryDate":  null
+    },
+    {
+        "name":  "Original Lata 350 ml",
+        "price":  5.9,
+        "category":  "Cervejas",
+        "image":  "original350ml.png",
+        "highlights":  false,
+        "stock":  16,
+        "expiryDate":  null
+    },
+    {
+        "name":  "Panceta em Tiras aprox. 500 g",
+        "price":  39.9,
+        "category":  "Suínos e Frangos",
+        "image":  "panceta.png",
+        "highlights":  false,
+        "stock":  0,
+        "expiryDate":  null
+    },
+    {
+        "name":  "Pão Brioche Arouca para Hamburguer 4 Unidades",
+        "price":  0,
+        "category":  "Hamburguer",
+        "image":  null,
+        "highlights":  false,
+        "stock":  0,
+        "expiryDate":  null
+    },
+    {
+        "name":  "Pão de Alho Santa Massa Tradicional 400 g",
+        "price":  19.9,
+        "category":  "Acompanhamentos",
+        "image":  null,
+        "highlights":  true,
+        "stock":  10,
+        "expiryDate":  null
+    },
+    {
+        "name":  "Petra Lata 350 ml",
+        "price":  4.9,
+        "category":  "Cervejas",
+        "image":  null,
+        "highlights":  false,
+        "stock":  0,
+        "expiryDate":  null
+    },
+    {
+        "name":  "Picanha Selecionada da Casa aprox. 1,1 Quilo",
+        "price":  134.9,
+        "category":  "Churrasco",
+        "image":  null,
+        "highlights":  false,
+        "stock":  0,
+        "expiryDate":  null
+    },
+    {
+        "name":  "Queijo Processado UHT Cheddar Polenghi Sandwich 144 g",
+        "price":  24.9,
+        "category":  "Acompanhamentos",
+        "image":  null,
+        "highlights":  false,
+        "stock":  0,
+        "expiryDate":  null
+    },
+    {
+        "name":  "Sal de Pamila BR Spices 500 g",
+        "price":  19.9,
+        "category":  "Itens para churrasco",
+        "image":  null,
+        "highlights":  false,
+        "stock":  2,
+        "expiryDate":  null
+    },
+    {
+        "name":  "Sobrecoxa com Pele e Sem Osso Temperada aprox. 800 g",
+        "price":  42.9,
+        "category":  "Suínos e Frangos",
+        "image":  null,
+        "highlights":  false,
+        "stock":  0,
+        "expiryDate":  null
+    },
+    {
+        "name":  "Toscana de Pernil aprox. 400 g",
+        "price":  19.9,
+        "category":  "Suínos e Frangos",
+        "image":  "toscana.png",
+        "highlights":  false,
+        "stock":  0,
+        "expiryDate":  null
+    },
+    {
+        "name":  "Tulipinha da Asa Temperada aprox. 500 g",
+        "price":  24.9,
+        "category":  "Suínos e Frangos",
+        "image":  "tulipinhaTEMP.jpg",
+        "highlights":  false,
+        "stock":  5,
+        "expiryDate":  null
+    }
+]
