@@ -1,26 +1,36 @@
 # Arouca Food
 
-Aplicativo mobile em React Native + Expo para catálogo, carrinho e administração de produtos do Empório Arouca.
+Aplicativo mobile com foco em vendas para açougue e conveniência, com catálogo de produtos, carrinho, autenticação e uma área administrativa para gestão de estoque e promoções.
 
-## Visão geral
+Este repositório concentra o projeto completo e a aplicação principal está dentro da pasta [app](app).
 
-O projeto está dividido em duas frentes:
+## Sobre o projeto
 
-- **Área do cliente**
-	- catálogo de produtos
-	- produtos em promoção
-	- filtro por categoria
-	- busca por nome e categoria
-	- carrinho local
-	- autenticação e perfil
+O Arouca Food foi pensado para unir duas experiências em um único app:
 
-- **Área administrativa**
-	- cadastro de produtos
-	- edição de estoque
-	- definição de promoções
-	- gerenciamento de categorias
+- Cliente: navegação de catálogo, busca, filtros, promoções e carrinho.
+- Administração: cadastro e manutenção de produtos, categorias e controle de estoque.
 
-## Stack
+Com isso, o fluxo operacional e o fluxo de compra ficam centralizados no mesmo ecossistema.
+
+## Funcionalidades principais
+
+### Área do cliente
+
+- Catálogo com busca por nome
+- Filtros por categoria
+- Produtos em destaque e promoções
+- Carrinho com persistência local
+- Login, cadastro e perfil do usuário
+
+### Área administrativa
+
+- Cadastro e edição de produtos
+- Gestão de categorias
+- Atualização de estoque
+- Configuração de produtos em promoção
+
+## Tecnologias
 
 - Expo
 - React Native
@@ -30,151 +40,58 @@ O projeto está dividido em duas frentes:
 - Cloud Firestore
 - AsyncStorage
 
-## Estrutura principal
+## Estrutura do repositório
 
-- [app/app](app/app) rotas do aplicativo
-- [app/components](app/components) componentes reutilizáveis
-- [app/constants](app/constants) constantes e mapeamentos
-- [app/services](app/services) serviços de domínio (ex.: carrinho)
-- [app/styles](app/styles) estilos por tela
-- [app/types](app/types) tipagens
-- [app/config/firebase.ts](app/config/firebase.ts) inicialização do Firebase
-- [app/constants/auth](app/constants/auth) constantes de acesso
-- [app/constants/media](app/constants/media) mapeamentos de imagens
-- [app/constants/ui](app/constants/ui) tema e tokens visuais
-- [app/firestore.rules](app/firestore.rules) regras do Firestore
+- [app/app](app/app): rotas e telas
+- [app/components](app/components): componentes reutilizáveis
+- [app/services](app/services): regras e serviços de domínio
+- [app/config/firebase.ts](app/config/firebase.ts): configuração do Firebase
+- [app/constants](app/constants): constantes de autenticação, mídia e UI
+- [app/styles](app/styles): estilos por tela
+- [app/types](app/types): tipagens do projeto
+- [app/firestore.rules](app/firestore.rules): regras de segurança do Firestore
 
-## Rotas atuais
+## Como rodar localmente
 
-### Cliente
+1. Entre na pasta da aplicação:
 
-- [app/app/userConfigs/index.tsx](app/app/userConfigs/index.tsx) Home / catálogo
-- [app/app/userConfigs/cart.tsx](app/app/userConfigs/cart.tsx) Carrinho
-- [app/app/userConfigs/profile.tsx](app/app/userConfigs/profile.tsx) Perfil / login / cadastro
+   cd app
 
-### Admin
+2. Instale as dependências:
 
-- [app/app/adminConfigs/estoque.tsx](app/app/adminConfigs/estoque.tsx) Cadastro e edição de produtos
-- [app/app/adminConfigs/produtos.tsx](app/app/adminConfigs/produtos.tsx) Lista administrativa de produtos
-- [app/app/adminConfigs/profile.tsx](app/app/adminConfigs/profile.tsx) Perfil admin
+   npm install
 
-## Como executar
+3. Inicie o projeto com Expo:
 
-Entre na pasta do app:
+   npx expo start
 
-```bash
-cd app
-```
+## Firebase e dados
 
-Instale as dependências:
+O projeto utiliza principalmente as coleções:
 
-```bash
-npm install
-```
+- produtos
+- categorias
+- users
+- carts
 
-Inicie o projeto:
+Scripts de importação de produtos estão em [app/scripts](app/scripts), usando o arquivo [app/data/products-import.json](app/data/products-import.json).
 
-```bash
-npx expo start
-```
+## Status atual
 
-## Firebase
+### Implementado
 
-O projeto usa as seguintes coleções principais no Firestore:
+- Catálogo com filtros e busca
+- Carrinho com cache local e sincronização para usuário autenticado
+- Autenticação com Firebase
+- Painel administrativo para produtos e categorias
 
-- `produtos`
-- `categorias`
-- `users`
-- `carts`
+### Próximas evoluções
 
-### Estrutura sugerida de `produtos`
+- Fluxo completo de checkout
+- Persistência de pedidos
+- Recuperação de senha mais robusta
+- Reforço de segurança administrativa com claims server-side
 
-```ts
-{
-	name: string;
-	price: number;
-	category: string;
-	image: string | null;
-	highlights: boolean;
-	stock: number;
-	createdAt: Timestamp;
-	updatedAt: Timestamp;
-}
-```
+## Documentação complementar
 
-### Estrutura sugerida de `categorias`
-
-```ts
-{
-	nome: string;
-	createdAt?: Timestamp;
-	updatedAt?: Timestamp;
-}
-```
-
-### Estrutura sugerida de `users`
-
-```ts
-{
-	uid: string;
-	name: string;
-	phone: string;
-	address: string;
-	addressNumber: string;
-	complement?: string | null;
-	cep: string;
-	cpf: string;
-	email: string;
-	createdAt: Timestamp;
-	updatedAt: Timestamp;
-}
-```
-
-### Estrutura sugerida de `carts`
-
-```ts
-{
-	items: Array<{
-		productId: string;
-		name: string;
-		price: number;
-		qty: number;
-		category?: string | null;
-		image?: string | null;
-		stock?: number | null;
-	}>;
-	updatedAt: Timestamp;
-}
-```
-
-## Estado atual do projeto
-
-### Já implementado
-
-- catálogo com busca e filtros
-- promoções destacadas
-- carrinho local com sincronização no Firestore para usuários autenticados
-- bloqueio de quantidade acima do estoque salvo no item
-- login e cadastro com Firebase Auth
-- painel admin com produtos e categorias
-
-### Em aberto
-
-- fluxo de checkout
-- pedidos persistidos
-- recuperação e troca de senha completa
-- refinamentos na sincronização de carrinho entre dispositivos
-- endurecimento de segurança do app
-
-## Observações importantes
-
-- Os acessos administrativos hoje dependem de emails definidos em [app/constants/auth/adminEmails.ts](app/constants/auth/adminEmails.ts).
-- As regras do Firestore estão em [app/firestore.rules](app/firestore.rules).
-- O carrinho usa AsyncStorage como cache local e sincroniza com a coleção `carts` quando o usuário está autenticado.
-
-## Próximos passos recomendados
-
-1. finalizar fluxo de pedido
-2. persistir pedidos no Firestore
-3. sincronizar carrinho por usuário autenticado
-4. reforçar segurança com claims/admin server-side
+Para detalhes operacionais da aplicação Expo, consulte também [app/README.md](app/README.md).
