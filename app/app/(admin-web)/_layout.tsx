@@ -1,10 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  KeyboardAvoidingView,
   Pressable,
-  Platform,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -13,9 +10,10 @@ import {
 import { Slot, usePathname, useRouter } from 'expo-router';
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut, type User } from 'firebase/auth';
 import { auth } from '@/config/firebase';
-import { ADMIN_EMAILS } from '@/constants/auth/adminEmails';
+import { isAdminEmail } from '@/constants/auth/adminEmails';
+import { BRAND_PRIMARY } from '@/constants/ui/colors';
 
-const BRAND = '#942229';
+const BRAND = BRAND_PRIMARY;
 const SIDEBAR_W = 220;
 
 const NAV_ITEMS = [
@@ -40,8 +38,7 @@ export default function AdminWebLayout() {
   }, []);
 
   const isAdmin = useMemo(() => {
-    if (!user?.email) return false;
-    return ADMIN_EMAILS.map((e) => e.toLowerCase()).includes(user.email.toLowerCase());
+    return isAdminEmail(user?.email);
   }, [user]);
 
   const handleLogin = async () => {
@@ -53,7 +50,7 @@ export default function AdminWebLayout() {
     setLoginError('');
     try {
       await signInWithEmailAndPassword(auth, loginEmail.trim(), loginPassword);
-    } catch (err: any) {
+    } catch {
       setLoginError('E-mail ou senha inválidos.');
     } finally {
       setLoggingIn(false);

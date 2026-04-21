@@ -10,11 +10,12 @@ import {
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { getCart, setQuantity, removeItem, clearCart, type CartItem } from "@/services/cart/cart";
+import { getCart, setQuantity, removeItem, type CartItem } from "@/services/cart/cart";
 import { getProductImage } from "@/constants/media/productImages";
+import { BRAND_PRIMARY } from "@/constants/ui/colors";
 import { styles } from "@/styles/cart.styles";
 
-const BRAND = "#942229";
+const BRAND = BRAND_PRIMARY;
 const bgImage = require("../../assets/images/cartBackground.jpeg");
 const placeholderProduct = require("../../assets/images/logo.png");
 
@@ -49,11 +50,6 @@ export default function CartScreen() {
   const handleRemove = async (productId: string) => {
     const updated = await removeItem(productId);
     setItems(updated);
-  };
-
-  const handleClear = async () => {
-    await clearCart();
-    setItems([]);
   };
 
   const renderItem = ({ item }: { item: CartItem }) => (

@@ -4,6 +4,7 @@
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
+import { getStorage } from "firebase/storage";
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
 
@@ -13,7 +14,7 @@ const firebaseConfig = {
   apiKey: "AIzaSyDFOZITJ8YNb8XuIaXZQ_u1yut9xhFF9eE",
   authDomain: "arouca-food.firebaseapp.com",
   projectId: "arouca-food",
-  storageBucket: "arouca-food.appspot.com",
+  storageBucket: "arouca-food.firebasestorage.app",
   messagingSenderId: "271556033301",
   appId: "1:271556033301:web:0ef7c5d7ca86a9fbc0471c",
   measurementId: "G-F0RK7ZB3CJ"
@@ -24,5 +25,6 @@ const app = initializeApp(firebaseConfig);
 
 const db = getFirestore(app);
 const auth = getAuth(app);
+const storage = getStorage(app);
 
-export { app, db, auth };  
+export { app, db, auth, storage };  

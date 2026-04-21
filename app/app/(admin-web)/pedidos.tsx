@@ -26,8 +26,9 @@ import {
   ORDER_STATUS_FLOW,
   ORDER_STATUS_LABELS,
 } from '@/types/Order';
+import { BRAND_PRIMARY } from '@/constants/ui/colors';
 
-const BRAND = '#942229';
+const BRAND = BRAND_PRIMARY;
 
 const ALL_STATUSES: (OrderStatus | 'all')[] = [
   'all',
@@ -81,10 +82,11 @@ export default function PedidosWebScreen() {
       setOrders(list);
       setLoading(false);
       // refresh selected if open
-      if (selected) {
-        const refreshed = list.find((o) => o.id === selected.id);
-        if (refreshed) setSelected(refreshed);
-      }
+      setSelected((current) => {
+        if (!current) return current;
+        const refreshed = list.find((o) => o.id === current.id);
+        return refreshed ?? current;
+      });
     });
     return unsub;
   }, []);

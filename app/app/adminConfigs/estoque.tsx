@@ -1,6 +1,8 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import * as ImagePicker from 'expo-image-picker';
 import {
   Alert,
+  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -16,10 +18,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { addDoc, collection, deleteDoc, doc, getDoc, getDocs, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { auth, db } from '@/config/firebase';
-import { ADMIN_EMAILS } from '@/constants/auth/adminEmails';
+import { isAdminEmail } from '@/constants/auth/adminEmails';
 import { PRODUCT_IMAGE_OPTIONS, getProductImage, getProductImageLabel } from '@/constants/media/productImages';
+import { BRAND_PRIMARY } from '@/constants/ui/colors';
+import { deleteProductImage, uploadProductImage } from '@/services/products/productImageStorage';
+import { formatExpiryInput, toDisplayExpiryDate, toStorageExpiryDate } from '@/utils/expiry';
 
-const BRAND = '#942229';
+const BRAND = BRAND_PRIMARY;
 const DEFAULT_CATEGORIES = [
   'Churrasco',
   'Suínos e Frangos',
@@ -35,65 +40,6 @@ const DEFAULT_CATEGORIES = [
 type Category = { id: string; name: string };
 const mapDefaultCategories = (): Category[] => DEFAULT_CATEGORIES.map((c) => ({ id: `default-${c}`, name: c }));
 
-const formatExpiryInput = (value: string) => {
-  const digits = value.replace(/\D/g, '').slice(0, 6);
-
-  if (digits.length <= 2) {
-    return digits;
-  }
-
-  if (digits.length <= 4) {
-    return `${digits.slice(0, 2)}/${digits.slice(2)}`;
-  }
-
-  return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
-};
-
-const formatStorageDateToInput = (value?: string | null) => {
-  if (!value) {
-    return '';
-  }
-
-  const [year, month, day] = value.split('-');
-  if (!year || !month || !day) {
-    return value;
-  }
-
-  return `${day}/${month}/${year.slice(-2)}`;
-};
-
-const normalizeExpiryDateForSave = (value: string) => {
-  const digits = value.replace(/\D/g, '');
-
-  if (!digits) {
-    return { value: '', valid: true };
-  }
-
-  if (digits.length !== 6) {
-    return { value: '', valid: false };
-  }
-
-  const day = Number(digits.slice(0, 2));
-  const month = Number(digits.slice(2, 4));
-  const year = 2000 + Number(digits.slice(4, 6));
-
-  const date = new Date(year, month - 1, day);
-  const isValid =
-    !Number.isNaN(date.getTime()) &&
-    date.getFullYear() === year &&
-    date.getMonth() === month - 1 &&
-    date.getDate() === day;
-
-  if (!isValid) {
-    return { value: '', valid: false };
-  }
-
-  return {
-    value: `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`,
-    valid: true,
-  };
-};
-
 type FormState = {
   id: string;
   name: string;
@@ -103,7 +49,16 @@ type FormState = {
   stock: string;
   expiryDate: string;
   image: string;
+  imageStoragePath: string;
 };
+
+type PendingUpload = {
+  uri: string;
+  fileName: string;
+  mimeType?: string | null;
+};
+
+type ImageMode = 'database' | 'upload';
 
 export default function EstoqueScreen() {
   const router = useRouter();
@@ -119,18 +74,38 @@ export default function EstoqueScreen() {
     highlights: false,
     stock: '',
     expiryDate: '',
-    image: PRODUCT_IMAGE_OPTIONS[0] ?? '',
+    image: '',
+    imageStoragePath: '',
   });
   const [saving, setSaving] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [prefillLoading, setPrefillLoading] = useState(false);
+  const [pendingUpload, setPendingUpload] = useState<PendingUpload | null>(null);
+  const [imageMode, setImageMode] = useState<ImageMode>('database');
+  const [dbImageOptions, setDbImageOptions] = useState<string[]>([]);
   const [newCategory, setNewCategory] = useState('');
   const [renameTarget, setRenameTarget] = useState<Category | null>(null);
   const { editId } = useLocalSearchParams<{ editId?: string }>();
 
   const isAdmin = useMemo(() => {
-    const email = user?.email?.toLowerCase();
-    return email ? ADMIN_EMAILS.map((e) => e.toLowerCase()).includes(email) : false;
+    return isAdminEmail(user?.email);
   }, [user]);
+
+  const resetForm = useCallback(() => {
+    setForm({
+      id: '',
+      name: '',
+      price: '',
+      category: categories[0]?.name ?? DEFAULT_CATEGORIES[0],
+      highlights: false,
+      stock: '',
+      expiryDate: '',
+      image: '',
+      imageStoragePath: '',
+    });
+    setPendingUpload(null);
+    setImageMode('database');
+  }, [categories]);
 
   const parseNumber = (value: string) => Number(value.replace(',', '.').trim());
 
@@ -145,6 +120,33 @@ export default function EstoqueScreen() {
       return;
     }
   }, [isAdmin, router]);
+
+  useEffect(() => {
+    if (!isAdmin) return;
+
+    const loadDbImageOptions = async () => {
+      try {
+        const snap = await getDocs(collection(db, 'produtos'));
+        const unique = new Map<string, string>();
+
+        snap.docs.forEach((d) => {
+          const data = d.data();
+          const value = typeof data?.image === 'string' ? data.image.trim() : '';
+          if (!value) return;
+          if (!unique.has(value)) {
+            unique.set(value, value);
+          }
+        });
+
+        const options = Array.from(unique.values());
+        setDbImageOptions(options);
+      } catch (err) {
+        console.warn('Falha ao carregar imagens do banco', err);
+      }
+    };
+
+    loadDbImageOptions();
+  }, [isAdmin]);
 
   useEffect(() => {
     if (!isAdmin) return;
@@ -203,14 +205,17 @@ export default function EstoqueScreen() {
             category: incomingCat,
             highlights: Boolean(data?.highlights),
             stock: data?.stock != null ? String(data.stock) : '',
-            expiryDate: formatStorageDateToInput(typeof data?.expiryDate === 'string' ? data.expiryDate : ''),
-            image: typeof data?.image === 'string' ? data.image : PRODUCT_IMAGE_OPTIONS[0] ?? '',
+            expiryDate: toDisplayExpiryDate(typeof data?.expiryDate === 'string' ? data.expiryDate : '', true),
+            image: typeof data?.image === 'string' ? data.image : '',
+            imageStoragePath: typeof data?.imageStoragePath === 'string' ? data.imageStoragePath : '',
           });
+          setPendingUpload(null);
+          setImageMode('database');
         } else {
           Alert.alert('Produto não encontrado', 'Verifique se ele ainda existe.');
           resetForm();
         }
-      } catch (err) {
+      } catch {
         Alert.alert('Erro', 'Falha ao carregar produto para edição.');
         resetForm();
       } finally {
@@ -219,19 +224,61 @@ export default function EstoqueScreen() {
     };
 
     loadProduct();
-  }, [editId, isAdmin]);
+  }, [editId, isAdmin, resetForm]);
 
-  const resetForm = () =>
-    setForm({
-      id: '',
-      name: '',
-      price: '',
-      category: categories[0]?.name ?? DEFAULT_CATEGORIES[0],
-      highlights: false,
-      stock: '',
-      expiryDate: '',
-      image: PRODUCT_IMAGE_OPTIONS[0] ?? '',
+  const chooseDatabaseImage = (imageKey: string) => {
+    setPendingUpload(null);
+    setForm((f) => ({ ...f, image: imageKey }));
+  };
+
+  const handleSelectImageMode = (mode: ImageMode) => {
+    setImageMode(mode);
+    if (mode === 'database') {
+      setPendingUpload(null);
+      setForm((f) => ({
+        ...f,
+        image: f.image || dbImageOptions[0] || PRODUCT_IMAGE_OPTIONS[0] || '',
+      }));
+    }
+  };
+
+  const handlePickImage = async () => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert('Permissão necessária', 'Permita o acesso às fotos para enviar imagens dos produtos.');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 0.9,
     });
+
+    if (result.canceled || !result.assets?.[0]) {
+      return;
+    }
+
+    const asset = result.assets[0];
+    setPendingUpload({
+      uri: asset.uri,
+      fileName: asset.fileName ?? asset.uri.split('/').pop() ?? 'produto.jpg',
+      mimeType: asset.mimeType,
+    });
+    setForm((f) => ({
+      ...f,
+      image: asset.uri,
+    }));
+  };
+
+  const handleRemoveImage = () => {
+    setPendingUpload(null);
+    setForm((f) => ({
+      ...f,
+      image: '',
+    }));
+  };
 
   const handleAddCategory = async () => {
     const value = newCategory.trim();
@@ -260,7 +307,7 @@ export default function EstoqueScreen() {
         setRenameTarget(null);
         setNewCategory('');
         return;
-      } catch (err) {
+      } catch {
         Alert.alert('Erro', 'Não foi possível renomear a categoria.');
         return;
       }
@@ -283,7 +330,7 @@ export default function EstoqueScreen() {
       setCategories((prev) => [...prev, nextCat]);
       setForm((f) => ({ ...f, category: value }));
       setNewCategory('');
-    } catch (err) {
+    } catch {
       Alert.alert('Erro', 'Não foi possível criar a categoria.');
     }
   };
@@ -316,7 +363,7 @@ export default function EstoqueScreen() {
               }
               return next;
             });
-          } catch (err) {
+          } catch {
             Alert.alert('Erro', 'Não foi possível remover a categoria.');
           }
         },
@@ -358,9 +405,11 @@ export default function EstoqueScreen() {
       return;
     }
 
-    const imageKey = form.image?.trim() || '';
+    const previousStoragePath = form.imageStoragePath.trim() || null;
+    let nextImage = form.image?.trim() || '';
+    let nextImageStoragePath = form.imageStoragePath.trim() || '';
     const expiryDateInput = form.expiryDate.trim();
-    const expiryDateNormalized = normalizeExpiryDateForSave(expiryDateInput);
+    const expiryDateNormalized = toStorageExpiryDate(expiryDateInput);
 
     if (!expiryDateNormalized.valid) {
       Alert.alert('Atenção', 'Data de validade inválida. Use o formato DD/MM/AA.');
@@ -374,12 +423,27 @@ export default function EstoqueScreen() {
 
     try {
       setSaving(true);
+      if (pendingUpload) {
+        setUploadingImage(true);
+        const uploaded = await uploadProductImage(
+          {
+            uri: pendingUpload.uri,
+            fileName: pendingUpload.fileName,
+            mimeType: pendingUpload.mimeType,
+          },
+          form.id || undefined
+        );
+        nextImage = uploaded.downloadURL;
+        nextImageStoragePath = uploaded.storagePath;
+      }
+
       if (form.id) {
         await updateDoc(doc(db, 'produtos', form.id), {
           name: form.name.trim(),
           price: priceNumber,
           category,
-          image: imageKey || null,
+          image: nextImage || null,
+          imageStoragePath: nextImageStoragePath || null,
           highlights: form.highlights,
           stock: stockNumber,
           expiryDate: expiryDateNormalized.value || null,
@@ -390,7 +454,8 @@ export default function EstoqueScreen() {
           name: form.name.trim(),
           price: priceNumber,
           category,
-          image: imageKey || null,
+          image: nextImage || null,
+          imageStoragePath: nextImageStoragePath || null,
           highlights: form.highlights,
           stock: stockNumber,
           expiryDate: expiryDateNormalized.value || null,
@@ -398,11 +463,22 @@ export default function EstoqueScreen() {
           updatedAt: serverTimestamp(),
         });
       }
+
+      if (previousStoragePath && previousStoragePath !== nextImageStoragePath) {
+        try {
+          await deleteProductImage(previousStoragePath);
+        } catch {
+          console.warn('Falha ao remover imagem antiga do produto');
+        }
+      }
+
+      setPendingUpload(null);
       resetForm();
     } catch (err: any) {
       console.error('Erro ao salvar produto', err);
       Alert.alert('Erro', err?.message ?? 'Não foi possível salvar.');
     } finally {
+      setUploadingImage(false);
       setSaving(false);
     }
   };
@@ -410,6 +486,11 @@ export default function EstoqueScreen() {
   if (!isAdmin) {
     return null;
   }
+
+  const previewSource = pendingUpload?.uri
+    ? { uri: pendingUpload.uri }
+    : getProductImage(form.image);
+  const showImagePreview = Boolean(previewSource);
 
   return (
     <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
@@ -423,6 +504,21 @@ export default function EstoqueScreen() {
 
           <View style={styles.formCard}>
             <Text style={styles.formTitle}>{form.id ? 'Editar produto' : 'Novo produto'}</Text>
+            <View style={styles.field}>
+              <Text style={styles.label}>Imagem atual do produto</Text>
+              {showImagePreview ? (
+                <>
+                  <View style={styles.imagePreviewWrap}>
+                    <Image source={previewSource!} style={styles.imagePreview} resizeMode="cover" />
+                  </View>
+                  <Text style={styles.helperInline}>
+                    {pendingUpload ? `Nova imagem selecionada: ${pendingUpload.fileName}` : getProductImageLabel(form.image) || 'Nenhuma imagem selecionada.'}
+                  </Text>
+                </>
+              ) : (
+                <Text style={styles.helperInline}>Nenhuma imagem selecionada.</Text>
+              )}
+            </View>
             <View style={styles.field}>
               <Text style={styles.label}>Nome</Text>
               <TextInput
@@ -466,28 +562,59 @@ export default function EstoqueScreen() {
             </View>
             <View style={styles.field}>
               <Text style={styles.label}>Imagem</Text>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{ gap: 10, paddingVertical: 4 }}
-              >
-                {PRODUCT_IMAGE_OPTIONS.map((img) => {
-                  const selected = form.image === img;
-                  const source = getProductImage(img);
-                  return (
-                    <Pressable
-                      key={img}
-                      style={[styles.imageChip, selected && styles.imageChipSelected]}
-                      onPress={() => setForm((f) => ({ ...f, image: img }))}
-                    >
-                      {source ? <Image source={source} style={styles.imageThumb} resizeMode="cover" /> : null}
-                      <Text style={[styles.imageText, selected && styles.imageTextSelected]} numberOfLines={1}>
-                        {getProductImageLabel(img)}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </ScrollView>
+              <View style={styles.imageModeRow}>
+                <Pressable
+                  style={[styles.chip, styles.imageModeChip, imageMode === 'database' && styles.chipSelected]}
+                  onPress={() => handleSelectImageMode('database')}
+                >
+                  <Text numberOfLines={2} style={[styles.chipText, styles.imageModeChipText, imageMode === 'database' && styles.chipTextSelected]}>Usar imagem do banco</Text>
+                </Pressable>
+                <Pressable
+                  style={[styles.chip, styles.imageModeChip, imageMode === 'upload' && styles.chipSelected]}
+                  onPress={() => handleSelectImageMode('upload')}
+                >
+                  <Text numberOfLines={2} style={[styles.chipText, styles.imageModeChipText, imageMode === 'upload' && styles.chipTextSelected]}>Enviar nova imagem</Text>
+                </Pressable>
+              </View>
+              <Text style={styles.helperInline}>Escolha se você vai usar uma imagem já existente ou enviar uma nova.</Text>
+              {imageMode === 'upload' ? (
+                <View style={styles.imageActionsRow}>
+                  <Pressable style={[styles.button, styles.primary, styles.imageActionButton]} onPress={handlePickImage} disabled={saving || uploadingImage}>
+                    <Text style={styles.buttonText}>{uploadingImage ? 'Enviando...' : 'Escolher arquivo'}</Text>
+                  </Pressable>
+                  <Pressable style={[styles.button, styles.secondary, styles.imageActionButton]} onPress={handleRemoveImage} disabled={saving || uploadingImage}>
+                    <Text style={[styles.buttonText, styles.secondaryText]}>Remover</Text>
+                  </Pressable>
+                </View>
+              ) : null}
+              {imageMode === 'database' ? (
+                dbImageOptions.length > 0 ? (
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={{ gap: 10, paddingVertical: 4 }}
+                  >
+                    {dbImageOptions.map((img) => {
+                      const selected = form.image === img && !pendingUpload;
+                      const source = getProductImage(img);
+                      return (
+                        <Pressable
+                          key={img}
+                          style={[styles.imageChip, selected && styles.imageChipSelected]}
+                          onPress={() => chooseDatabaseImage(img)}
+                        >
+                          {source ? <Image source={source} style={styles.imageThumb} resizeMode="cover" /> : null}
+                          <Text style={[styles.imageText, selected && styles.imageTextSelected]} numberOfLines={1}>
+                            {getProductImageLabel(img)}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </ScrollView>
+                ) : (
+                  <Text style={styles.helperInline}>Nenhuma imagem encontrada no banco de dados.</Text>
+                )
+              ) : null}
             </View>
             <View style={styles.field}>
               <Text style={styles.label}>Estoque</Text>
@@ -523,13 +650,14 @@ export default function EstoqueScreen() {
             </View>
 
             <View style={styles.actionsRow}>
-              <Pressable style={[styles.button, styles.secondary]} onPress={resetForm} disabled={saving}>
+              <Pressable style={[styles.button, styles.secondary]} onPress={() => { setPendingUpload(null); resetForm(); }} disabled={saving || uploadingImage}>
                 <Text style={[styles.buttonText, styles.secondaryText]}>Limpar</Text>
               </Pressable>
-              <Pressable style={[styles.button, styles.primary]} onPress={handleSave} disabled={saving}>
-                <Text style={styles.buttonText}>{saving ? 'Salvando...' : form.id ? 'Atualizar' : 'Criar'}</Text>
+              <Pressable style={[styles.button, styles.primary]} onPress={handleSave} disabled={saving || uploadingImage}>
+                <Text style={styles.buttonText}>{saving || uploadingImage ? 'Salvando...' : form.id ? 'Atualizar' : 'Criar'}</Text>
               </Pressable>
             </View>
+            {uploadingImage ? <ActivityIndicator color={BRAND} style={styles.uploadingIndicator} /> : null}
           </View>
 
           <View style={styles.categoryCard}>
@@ -667,6 +795,23 @@ const styles = StyleSheet.create({
   chipTextSelected: {
     color: '#fff',
   },
+  imageModeRow: {
+    flexDirection: 'row',
+    gap: 8,
+    width: '100%',
+  },
+  imageModeChip: {
+    flex: 1,
+    minWidth: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 10,
+  },
+  imageModeChipText: {
+    textAlign: 'center',
+    lineHeight: 18,
+    flexShrink: 1,
+  },
   imageChip: {
     width: 110,
     borderWidth: 1,
@@ -688,6 +833,39 @@ const styles = StyleSheet.create({
   imageThumb: { width: 70, height: 70, borderRadius: 10 },
   imageText: { fontSize: 12, textAlign: 'center', color: '#3c2b1e', fontWeight: '700' },
   imageTextSelected: { color: BRAND },
+  imagePreviewWrap: {
+    borderWidth: 1,
+    borderColor: '#d9cfc2',
+    borderRadius: 12,
+    backgroundColor: '#fdfaf6',
+    overflow: 'hidden',
+  },
+  imagePreview: {
+    width: '100%',
+    height: 180,
+    backgroundColor: '#f1e8de',
+  },
+  imagePreviewPlaceholder: {
+    width: '100%',
+    height: 180,
+    backgroundColor: '#f1e8de',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  imagePreviewPlaceholderText: {
+    color: '#8b7867',
+    fontWeight: '700',
+  },
+  imageActionsRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  imageActionButton: {
+    flex: 1,
+  },
+  uploadingIndicator: {
+    marginTop: 4,
+  },
   addCategoryRow: {
     flexDirection: 'row',
     alignItems: 'center',

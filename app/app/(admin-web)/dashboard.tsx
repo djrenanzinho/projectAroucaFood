@@ -1,8 +1,6 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  FlatList,
-  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -10,11 +8,12 @@ import {
 } from 'react-native';
 import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { db } from '@/config/firebase';
+import { BRAND_PRIMARY } from '@/constants/ui/colors';
 import type { Product } from '@/types/Product';
 import type { Order } from '@/types/Order';
 import { ORDER_STATUS_LABELS, ORDER_STATUS_COLORS } from '@/types/Order';
 
-const BRAND = '#942229';
+const BRAND = BRAND_PRIMARY;
 const DAY_IN_MS = 24 * 60 * 60 * 1000;
 
 type Stat = { label: string; value: number | string; color?: string; sub?: string };

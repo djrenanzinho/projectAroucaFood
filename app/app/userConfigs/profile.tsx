@@ -15,7 +15,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "firebase/auth";
 import { auth, db } from "@/config/firebase";
-import { ADMIN_EMAILS } from "@/constants/auth/adminEmails";
+import { isAdminEmail } from "@/constants/auth/adminEmails";
 import { collection, doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 import { styles } from "@/styles/profile.styles";
 import { clearLocalCartCache, syncCartWithCurrentUser } from "@/services/cart/cart";
@@ -50,10 +50,8 @@ export default function ProfileScreen() {
     cep?: string | null;
     cpf?: string | null;
   } | null>(null);
-  const [profileLoading, setProfileLoading] = useState(false);
   const isAdmin = useMemo(() => {
-    const email = user?.email?.toLowerCase();
-    return email ? ADMIN_EMAILS.map((e) => e.toLowerCase()).includes(email) : false;
+    return isAdminEmail(user?.email);
   }, [user]);
 
   const formatCpfValue = (value: string) => {
@@ -93,7 +91,6 @@ export default function ProfileScreen() {
   useEffect(() => {
     const fetchProfile = async () => {
       if (!user || isAdmin) return;
-      setProfileLoading(true);
       try {
         const ref = doc(collection(db, "users"), user.uid);
         const snap = await getDoc(ref);
@@ -112,8 +109,6 @@ export default function ProfileScreen() {
         }
       } catch (err) {
         console.warn("Falha ao carregar perfil", err);
-      } finally {
-        setProfileLoading(false);
       }
     };
     fetchProfile();
@@ -198,9 +193,7 @@ export default function ProfileScreen() {
       }
 
       const email = userCred?.user?.email?.toLowerCase();
-      const isAdmin = email
-        ? ADMIN_EMAILS.map((e) => e.toLowerCase()).includes(email)
-        : false;
+      const isAdmin = isAdminEmail(email);
       if (isAdmin) {
         router.replace("/adminConfigs/estoque");
       }

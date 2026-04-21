@@ -5,28 +5,22 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { collection, deleteDoc, doc, getDocs } from 'firebase/firestore';
 import { useRouter } from 'expo-router';
 
-import { ADMIN_EMAILS } from '@/constants/auth/adminEmails';
+import { isAdminEmail } from '@/constants/auth/adminEmails';
+import { BRAND_PRIMARY } from '@/constants/ui/colors';
 import { auth, db } from '@/config/firebase';
 import type { Product } from '@/types/Product';
+import { getExpiryMeta, toDisplayExpiryDate } from '@/utils/expiry';
 
-const BRAND = '#942229';
-const DAY_IN_MS = 24 * 60 * 60 * 1000;
+const BRAND = BRAND_PRIMARY;
 type ExpiryFilter = 'all' | 'warning' | 'expired';
 
 const getExpiryStatus = (expiryDate?: string | null) => {
-  if (!expiryDate) {
+  const meta = getExpiryMeta(expiryDate);
+  if (meta.diffDays === null) {
     return { label: 'Validade: -', expired: false, warning: false };
   }
 
-  const parsed = new Date(`${expiryDate}T00:00:00`);
-  if (Number.isNaN(parsed.getTime())) {
-    return { label: 'Validade: -', expired: false, warning: false };
-  }
-
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  const diffDays = Math.ceil((parsed.getTime() - today.getTime()) / DAY_IN_MS);
+  const diffDays = meta.diffDays;
 
   if (diffDays < 0) {
     return { label: 'Validade: Vencido', expired: true, warning: false };
@@ -48,16 +42,7 @@ const getExpiryStatus = (expiryDate?: string | null) => {
 };
 
 const formatExpiryDate = (expiryDate?: string | null) => {
-  if (!expiryDate) {
-    return '-';
-  }
-
-  const [year, month, day] = expiryDate.split('-');
-  if (!year || !month || !day) {
-    return expiryDate;
-  }
-
-  return `${day}/${month}/${year}`;
+  return toDisplayExpiryDate(expiryDate) || '-';
 };
 
 export default function ProdutosScreen() {
@@ -72,8 +57,7 @@ export default function ProdutosScreen() {
   const [activeFilter, setActiveFilter] = useState<ExpiryFilter>('all');
 
   const isAdmin = useMemo(() => {
-    const email = user?.email?.toLowerCase();
-    return email ? ADMIN_EMAILS.map((e) => e.toLowerCase()).includes(email) : false;
+    return isAdminEmail(user?.email);
   }, [user]);
 
   const loadProducts = useCallback(async () => {
@@ -94,7 +78,7 @@ export default function ProdutosScreen() {
         };
       });
       setProducts(list);
-    } catch (err) {
+    } catch {
       Alert.alert('Erro', 'Falha ao carregar produtos.');
     } finally {
       setLoading(false);
@@ -191,7 +175,7 @@ export default function ProdutosScreen() {
             await deleteDoc(doc(db, 'produtos', selected.id));
             await loadProducts();
             closeOptions();
-          } catch (err) {
+          } catch {
             Alert.alert('Erro', 'Não foi possível excluir.');
           }
         },

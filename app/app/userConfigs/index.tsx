@@ -133,7 +133,7 @@ export default function HomeScreen() {
         });
 
         setProducts(list);
-      } catch (err) {
+      } catch {
         if (active) {
           setError("Erro ao buscar produtos. Tente novamente.");
         }
@@ -237,7 +237,7 @@ export default function HomeScreen() {
       );
       setTimeout(() => setCartMessage(null), 2200);
       setModalVisible(false);
-    } catch (err) {
+        } catch {
       Alert.alert("Erro", "Não foi possível adicionar ao carrinho. Tente novamente.");
     }
   };
